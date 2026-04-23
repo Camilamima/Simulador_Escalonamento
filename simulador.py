@@ -25,14 +25,14 @@ class simulador:
             if esc == 'SRTF':
                 tf.queue.sort(key=lambda t: t.duracao)
             for i, interator in enumerate(tf.queue):
-                if interator.status == "Não iniciado" and interator.ingresso >= tempo:
+                print("eu entrei aqui")
+                if interator.status == "Não iniciado" and interator.ingresso <= tempo:
                     interator.status = "Ocioso"
-                if interator.duracao==0:
-                    interator.status = "Finalizada"
                 if(i<cpu and interator.status in ["Ocioso","Rodando"]):
                     interator.status="Rodando"
                 if (i>= cpu and interator.status in ["Ocioso","Rodando"]):
                     interator.status="Ocioso"
+                print("ingresso da tarfa:",interator.ingresso)
                 print("tempo:",tempo)
                 print("Tarefa:",interator.id)
                 print("Status:",interator.status)
@@ -42,10 +42,12 @@ class simulador:
                                                      ,(tempo*50)+100,500-(interator.id*50),'blue')
                     tarefas_faltantes+=1
                     interator.duracao-=1
+                    if interator.duracao==0:
+                        interator.status = "Finalizada"
                 if interator.status=="Ocioso":
                     self.Ggrafico.desenhar_retangulo((tempo*50)+50,550-(interator.id*50)
                                                      ,(tempo*50)+100,500-(interator.id*50),'white')
-                    tarefas_faltantes+=1
+                   
             tf.queue[:] = [t for t in tf.queue if t.status != "Finalizada"]
             tempo+=1
             if not tf.queue:
