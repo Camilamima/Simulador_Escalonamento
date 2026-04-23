@@ -14,13 +14,6 @@ class gerenciador_grafico:
     def move_retangulo(self,x):
         self.canvas.move(self.id,x,0)
 
-    def aumentar_retangulo(self, dx, dy):
-        x1, y1, x2, y2 = self.canvas.coords(self.id)
-
-        x2 += dx  
-        y2 += dy  
-        self.canvas.coords(self.id, x1, y1, x2, y2)
-
     def desenhar_palavra(self,strt,x,y,fonte):
         self.canvas.create_text(x, y, text=strt, font=("Arial", fonte))
 
