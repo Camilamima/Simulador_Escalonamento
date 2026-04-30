@@ -3,32 +3,34 @@ import tarefa as tf
 import copy 
 
 class simulador:
+    ##iniciação de variaveis
     def __init__(self):
         self.tarefas = []
         self.cria_tarefas()
         self.Ggrafico = gg.gerenciador_grafico()
-
+    #inicializador
     def iniciar(self):
         #self.cria_tarefas()
         #self.Ggrafico.atualizar()
         self.simulador_grafico()
         self.Ggrafico.janela.mainloop()
-    
+    ##Aqui que a mágica acontece
     def simulador_grafico(self):
         tempo=0
         esc='SRTF'
         cpu=1
-        tf.queue = copy.deepcopy(self.tarefas)
+        ##copia lista de tarefas
+        tf.queue = copy.deepcopy(self.tarefas) ##copia lista 
+        ##While de tempo, cada looping é um tempo
         while True:
             tarefas_faltantes=0
-            self.Ggrafico.desenhar_palavra(str(tempo),(tempo*50)+50,550,10)
-            if esc == 'SRTF':
-                tf.queue.sort(key=lambda t: t.duracao)
-            for i, interator in enumerate(tf.queue):
-                print("eu entrei aqui")
-                if interator.status == "Não iniciado" and interator.ingresso <= tempo:
+            self.Ggrafico.desenhar_palavra(str(tempo),(tempo*50)+50,550,10)#desenha os números
+            if esc == 'SRTF':##futuramente criar mais um if pra PRIOP
+                tf.queue.sort(key=lambda t: t.duracao)##Organiza lista por duracao
+            for i, interator in enumerate(tf.queue): ##percorre lista
+                if interator.status == "Não iniciado" and interator.ingresso <= tempo:##Inicializa tarefa
                     interator.status = "Ocioso"
-                if(i<cpu and interator.status in ["Ocioso","Rodando"]):
+                if(i==0 and interator.status in ["Ocioso","Rodando"]):##Regra pra mais de um cpu
                     interator.status="Rodando"
                 if (i>= cpu and interator.status in ["Ocioso","Rodando"]):
                     interator.status="Ocioso"
@@ -48,9 +50,9 @@ class simulador:
                     self.Ggrafico.desenhar_retangulo((tempo*50)+50,550-(interator.id*50)
                                                      ,(tempo*50)+100,500-(interator.id*50),'white')
                    
-            tf.queue[:] = [t for t in tf.queue if t.status != "Finalizada"]
+            tf.queue[:] = [t for t in tf.queue if t.status != "Finalizada"]##retira os finalizados da lista
             tempo+=1
-            if not tf.queue:
+            if not tf.queue:##finaliza lista
                 break
 
 
