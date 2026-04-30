@@ -4,3 +4,4 @@ __pycache__/
 *.pyd
 .env
 venv/
+__pycache__/simulador.cpython-313.pyc
