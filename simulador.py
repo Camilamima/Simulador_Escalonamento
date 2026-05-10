@@ -18,42 +18,39 @@ class simulador:
     def simulador_grafico(self):
         tempo=0
         esc='SRTF'
-        cpu=1
-        ##copia lista de tarefas
-        tf.queue = copy.deepcopy(self.tarefas) ##copia lista 
-        ##While de tempo, cada looping é um tempo
-        while True:
-            tarefas_faltantes=0
+        cpu=2
+        cores_terefas = ['blue', 'green', 'orange', 'purple', 'cyan', 'magenta', 'yellow', 'pink']
+        # Fila local independente para não corromper self.tarefas
+        fila = copy.deepcopy(self.tarefas)
+        
+        # Roda a simulação enquanto ainda houver tarefas a processar
+        while fila:
             self.Ggrafico.desenhar_palavra(str(tempo),(tempo*50)+50,550,10)#desenha os números
-            if esc == 'SRTF':##futuramente criar mais um if pra PRIOP
-                tf.queue.sort(key=lambda t: t.duracao)##Organiza lista por duracao
-            for i, interator in enumerate(tf.queue): ##percorre lista
-                if interator.status == "Não iniciado" and interator.ingresso <= tempo:##Inicializa tarefa
-                    interator.status = "Ocioso"
-                if(i==0 and interator.status in ["Ocioso","Rodando"]):##Regra pra mais de um cpu
-                    interator.status="Rodando"
-                if (i>= cpu and interator.status in ["Ocioso","Rodando"]):
-                    interator.status="Ocioso"
-                print("ingresso da tarfa:",interator.ingresso)
-                print("tempo:",tempo)
-                print("Tarefa:",interator.id)
-                print("Status:",interator.status)
-                print("Duracao:",interator.duracao)
-                if interator.status=="Rodando":
-                    self.Ggrafico.desenhar_retangulo((tempo*50)+50,550-(interator.id*50)
-                                                     ,(tempo*50)+100,500-(interator.id*50),'blue')
-                    tarefas_faltantes+=1
-                    interator.duracao-=1
-                    if interator.duracao==0:
-                        interator.status = "Finalizada"
-                if interator.status=="Ocioso":
-                    self.Ggrafico.desenhar_retangulo((tempo*50)+50,550-(interator.id*50)
-                                                     ,(tempo*50)+100,500-(interator.id*50),'white')
-                   
-            tf.queue[:] = [t for t in tf.queue if t.status != "Finalizada"]##retira os finalizados da lista
+            
+            # Identifica tarefas que já chegaram no tempo atual
+            tarefas_prontas = [t for t in fila if t.ingresso <= tempo]
+            
+            if tarefas_prontas:
+                tarefas_prontas.sort(key=lambda t: t.duracao)##Organiza lista por duracao (SRTF)
+                
+                # Percorre o vetor de tarefas prontas
+                for i, iterador in enumerate(tarefas_prontas):
+                    #Tarefa de maior prioridade assume a CPU caso haja uma disponível.
+                    #Maior prioridade é definida pela ordem da tarefa na lista de prontas,
+                    #ou seja, se houver 4 cpus disponíveis, as 4 primeiras tarefas da 
+                    # lista de prontas serão executadas nesse mesmo ciclo
+                    if i < cpu: 
+                        iterador.status="Rodando"
+                        iterador.cor=cores_terefas[iterador.id % len(cores_terefas)]
+                        self.Ggrafico.desenhar_retangulo((tempo*50)+50,550-(iterador.id*50),(tempo*50)+100,500-(iterador.id*50), iterador.cor)
+                        iterador.duracao-=1
+                    else:
+                        iterador.status="Ocioso"
+                        self.Ggrafico.desenhar_retangulo((tempo*50)+50,550-(iterador.id*50),(tempo*50)+100,500-(iterador.id*50),'white')
+                    print(f"Tempo: {tempo} | Tarefa: {iterador.id} | Status: {iterador.status} | Duracao Restante: {iterador.duracao}")
+            
+            fila = [t for t in fila if t.duracao > 0]##Refaz a fila baseado nas tarefas que ainda tem duração restante
             tempo+=1
-            if not tf.queue:##finaliza lista
-                break
 
 
 
@@ -70,4 +67,3 @@ class simulador:
             x=input('Digite 3 para sair').strip()
             if x=='3':
                 break
-
