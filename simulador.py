@@ -20,8 +20,9 @@ class simulador:
         self.botao_passo = None
         self.botao_executar_tudo = None
         self.botao_retroceder = None
-        self.botao_modificar = None
+        self.botao_status = None
         self.historico_estados = []
+        self.botao_modifiar = []
 
     #inicializador
     def iniciar(self):
@@ -46,7 +47,13 @@ class simulador:
         self.botao_executar_tudo = tk.Button(control_frame, text="Executar Tudo", command=self.executar_tudo)
         self.botao_executar_tudo.pack(side=tk.LEFT, padx=10)
 
-        # O estado inicial (tempo 0) é desenhado no primeiro clique de "Próximo Passo"
+        # Botão para mostrar status simulação
+        self.botao_status=tk.Button(control_frame,text= "Status tarefa", command=lambda: self.Ggrafico.abrir_janela_status(self.fila))
+        self.botao_status.pack(side=tk.LEFT, padx=10)
+        
+        #Botão para modificar tarefas
+        self.botao_modificar=tk.Button(control_frame,text='Modificar tarefa', command=lambda: self.Ggrafico.modificar(self.fila))
+        self.botao_modificar.pack(side=tk.LEFT,padx=10)
 
         self.Ggrafico.janela.mainloop()
 
@@ -103,7 +110,7 @@ class simulador:
                 if(x.status=='Pronta'):
                     self.Ggrafico.desenhar_retangulo(self.tempo,x.id,'white')
 
-        self.prontas = [t for t in self.prontas if t.duracao > 0]
+        self.prontas = [t for t in self.prontas if t.duracao > 0 and (t.status=="Pronta" or t.status=="Rodando")]
         
 
         self.tempo += 1
@@ -120,7 +127,6 @@ class simulador:
             'tempo': self.tempo,
             'fila_prontas': copy.deepcopy(self.prontas),
             'fila_original': copy.deepcopy(self.fila),
-            'prontas': copy.deepcopy(self.prontas),
             'cpus': copy.deepcopy(self.cpu),
         }
         #A cada tempo passado, salva numa fila o tempo, quantum e como está a fila(via dicionario)

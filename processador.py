@@ -2,7 +2,6 @@ import gerenciador_grafico as gg
 class processador:
     def __init__(self,id,qt):
         self.id=id
-        self.ociosidade=0
         self.status=0 #0 para para ocioso 1 para ocupado
         self.quantum=qt
         self.quantum_atual=0
