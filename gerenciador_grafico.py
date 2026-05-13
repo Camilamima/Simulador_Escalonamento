@@ -1,5 +1,4 @@
 from PIL import Image, ImageDraw, ImageGrab
-import io
 import tkinter as tk
 ## gerencia  interface grafica
 class gerenciador_grafico:
@@ -55,5 +54,16 @@ class gerenciador_grafico:
         self.janela.after(33,self.atualizar)
 
     def salvar_canvas_jpg(self, nome="saida.jpg"):
-            img = ImageGrab.grab()
+            # Garante que a geometria da janela está atualizada antes de capturar
+            self.janela.update_idletasks()
+
+            # Pega as coordenadas e dimensões da janela principal
+            x = self.janela.winfo_rootx()
+            y = self.janela.winfo_rooty()
+            largura = self.janela.winfo_width()
+            altura = self.janela.winfo_height()
+
+            # Define a área de captura (bounding box)
+            bbox = (x, y, x + largura, y + altura)
+            img = ImageGrab.grab(bbox=bbox)
             img.save(nome, "jpeg")

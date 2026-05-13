@@ -2,15 +2,14 @@ import gerenciador_grafico as gg
 import tarefa as tf
 import copy
 import tkinter as tk
-import io
-from PIL import ImageGrab
+import processador as pr
  
 class simulador:
     ##inicialização de variaveis
     def __init__(self):
         self.flag=0
         self.tarefas = []
-        self.cpu=2
+        self.cpu=[]
         self.escalonador=''
         self.prontas=[]
         self.Ggrafico = gg.gerenciador_grafico()
@@ -84,6 +83,7 @@ class simulador:
                       self.prontas.sort(key=lambda t: (-t.prioridade, t.id))
                 elif self.escalonador == "srtf":
                         self.prontas.sort(key=lambda t: (t.duracao,t.prioridade))
+                        
 
 
         if self.prontas:
@@ -147,7 +147,7 @@ class simulador:
 
         # 4. Reabilita os botões de avançar e atualiza o de retroceder
         self.botao_passo.config(state="normal", text="Próximo Passo")
-        self.botao_executar_tudo.config(state="normal")
+        self.botao_executar_tudo.config(state="normal", text="Executar Tudo")
         if len(self.historico_estados) <= 1:
             self.botao_retroceder.config(state="disabled")
 
@@ -158,8 +158,6 @@ class simulador:
             self.botao_passo.config(state="disabled", text="Finalizado")
         if self.botao_executar_tudo:
             self.botao_executar_tudo.config(state="disabled", text="Finalizado")
-        if self.botao_retroceder:
-            self.botao_retroceder.config(state="disabled")
         self.Ggrafico.salvar_canvas_jpg()
 
 
@@ -175,10 +173,11 @@ class simulador:
                         cabecalho = linha.split(';')
                         if len(cabecalho) >= 3:
                             self.escalonador = cabecalho[0]
-                            self.quantum = int(cabecalho[1])
                             for i in range(int(cabecalho[2])):
-                                print("Numero id",i)
-                                self.cpu.append(pr.processador(i,self.quantum))
+                                if self.escalonador == "priop":
+                                    self.cpu.append(pr.processador(i,int(cabecalho[1])))
+                                elif self.escalonador == "srtf":
+                                    self.cpu.append(pr.processador(i,1))
                         continue 
                     valores = linha.split(';')
                     if len(valores) >= 5:
