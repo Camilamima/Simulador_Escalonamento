@@ -24,7 +24,7 @@ class simulador:
     def iniciar(self):
         self.cria_tarefas()
         self.fila = copy.deepcopy(self.tarefas)
-        self.Ggrafico.desenhar_legenda(self.fila)
+        self.Ggrafico.desenhar_grafico(self.fila)
         self.salvar_estado_atual()
 
         control_frame = tk.Frame(self.Ggrafico.janela)
@@ -86,24 +86,17 @@ class simulador:
                             cpu.tarefa_rodando = tarefa
                             break
                 cpu.executar(self.Ggrafico,self.tempo)
-
+            i = 0
+            for cpu in self.cpu:
+                if cpu.ociosidade==1:
+                    i += 1
+            self.Ggrafico.desenhar_processador(i,self.tempo, len(self.prontas))
             for x in self.prontas:
                 if(x.status=='Pronta'):
                     self.Ggrafico.desenhar_retangulo(self.tempo,x.id,'white')
-                    
-            
-
-
-
         self.prontas = [t for t in self.prontas if t.duracao > 0 and (t.status=="Pronta" or t.status=="Rodando")]
-        
-
         self.tempo += 1
-        i = 0
-        for cpu in self.cpu:
-            if cpu.ociosidade==1:
-                i += 1
-        self.Ggrafico.desenhar_processador(i,self.tempo, len(self.prontas))
+        
         self.salvar_estado_atual()
         self.botao_retroceder.config(state="normal")
         if not self.prontas:
@@ -123,15 +116,12 @@ class simulador:
             return
         tempo_a_limpar = self.tempo - 1
         self.Ggrafico.limpar_passo(tempo_a_limpar)
-
         self.historico_estados.pop()
-
         estado_anterior = self.historico_estados[-1]
         self.tempo = estado_anterior['tempo']
         self.prontas = copy.deepcopy(estado_anterior['fila_prontas'])
         self.fila=copy.deepcopy(estado_anterior['fila_original'])
         self.cpu = copy.deepcopy(estado_anterior['cpus'])
-
         self.botao_passo.config(state="normal", text="Próximo Passo")
         self.botao_executar_tudo.config(state="normal", text="Executar Tudo")
         if len(self.historico_estados) <= 1:
@@ -139,12 +129,12 @@ class simulador:
 
     def finalizar_simulacao(self):
         self.Ggrafico.desenhar_palavra(self.tempo, len(self.tarefas))
+        self.Ggrafico.desenhar_processador(len(self.cpu),self.tempo, len(self.prontas))
         if self.botao_passo:
             self.botao_passo.config(state="disabled", text="Finalizado")
         if self.botao_executar_tudo:
             self.botao_executar_tudo.config(state="disabled", text="Finalizado")
         self.Ggrafico.salvar_canvas_jpg()
-
 
     def cria_tarefas(self):
         try:

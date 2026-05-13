@@ -31,4 +31,4 @@ class processador:
             self.tarefa_rodando.status='Finalizado'
             self.tarefa_rodando= None
             self.reseta_quantum_atual()
-            self.ociosidade=1
+            

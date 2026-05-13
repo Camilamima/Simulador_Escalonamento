@@ -32,7 +32,7 @@ class gerenciador_grafico:
         self.canvas.create_text(x+200, y, text=strt1, font=("Arial", 10), tags=("task_text",tag,))
 
 
-    def desenhar_legenda(self,lista):
+    def desenhar_grafico(self,lista):
         for i, iterador in enumerate(lista):
             strt="T" + str(i) + " (p" + str(iterador.prioridade) + ",d" + str(iterador.duracao)+")"
             y=self.yOrigem-(iterador.id*25)
