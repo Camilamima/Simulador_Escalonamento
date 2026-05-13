@@ -3,7 +3,7 @@ class processador:
     def __init__(self,id,qt):
         self.id=id
         self.ociosidade=0
-        self.status=0 #0 para para ocioso 1 para ocupado
+        self.status=0
         self.quantum=qt
         self.quantum_atual=0
         self.flag_q=0
@@ -21,7 +21,9 @@ class processador:
 
     def executar(self,Ggrafico,tempo):
         if self.tarefa_rodando is None:
+            self.ociosidade=1
             return
+        self.ociosidade=0
         Ggrafico.desenhar_retangulo(tempo,self.tarefa_rodando.id,self.tarefa_rodando.cor)
         self.tarefa_rodando.duracao-=1
         self.quantum_atual+=1
@@ -29,3 +31,4 @@ class processador:
             self.tarefa_rodando.status='Finalizado'
             self.tarefa_rodando= None
             self.reseta_quantum_atual()
+            self.ociosidade=1

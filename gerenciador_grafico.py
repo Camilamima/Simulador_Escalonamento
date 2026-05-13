@@ -1,29 +1,35 @@
 from PIL import Image, ImageDraw, ImageGrab
 import tkinter as tk
-## gerencia  interface grafica
 class gerenciador_grafico:
     def __init__(self):
         self.janela = tk.Tk()
         self.janela.title("Retângulo")
         self.canvas = tk.Canvas(self.janela, width=1200, height=600)
         self.canvas.pack()
+        self.xOrigem = 60
+        self.yOrigem = 540
+        self.alturaQuadrado = 25
+        self.larguraQuadrado = 50
+
 
     def desenhar_retangulo(self,tempo,id,cor):
         tag = f"passo_{tempo}"
-        x1=(tempo*50)+55
-        y1=550-(id*25)
-        x2=(tempo*50)+105
-        y2=525-(id*25)
+        x1=(tempo*self.larguraQuadrado)+self.xOrigem
+        y1=self.yOrigem-(id*self.alturaQuadrado)
+        x2=(tempo*self.larguraQuadrado)+(self.larguraQuadrado+self.xOrigem)
+        y2=(self.yOrigem-self.alturaQuadrado)-(id*self.alturaQuadrado)
         self.id=self.canvas.create_rectangle(x1, y1, x2, y2, fill=cor, tags=(tag,))
     
-    def desenhar_processador(self,proc, tempo):
+    def desenhar_processador(self,proc, tempo, tarefas):
         strt="Processadores inativos: " + str(proc)
-        x=600
-        y=593
+        strt1="Tarefas prontas: " + str(tarefas) 
+        x=400
+        y=self.yOrigem + 40
         tag = f"passo_{tempo}"
-        # Deleta o texto anterior para evitar sobreposição
         self.canvas.delete("proc_text")
+        self.canvas.delete("task_text")
         self.canvas.create_text(x, y, text=strt, font=("Arial", 10), tags=("proc_text", tag))
+        self.canvas.create_text(x+200, y, text=strt1, font=("Arial", 10), tags=("task_text",tag,))
 
     def move_retangulo(self,x):
         self.canvas.move(self.id,x,0)
@@ -31,21 +37,29 @@ class gerenciador_grafico:
     def desenhar_legenda(self,lista):
         for i, iterador in enumerate(lista):
             strt="T" + str(i) + " (p" + str(iterador.prioridade) + ",d" + str(iterador.duracao)+")"
-            y=550-(iterador.id*25)
-            y1=537-(iterador.id*25)
-            self.canvas.create_text(23, y1, text=strt, font=("Arial", 8))
-            self.canvas.create_line(15, y, 1200, y, fill="gray", dash=(2, 4))
+            y=self.yOrigem-(iterador.id*25)
+            y1=(self.yOrigem-(self.alturaQuadrado/2))-(iterador.id*self.alturaQuadrado)
+            x=self.xOrigem-30
+            self.canvas.create_text(x, y1, text=strt, font=("Arial", 8))
+            #self.canvas.create_line(x, y, 1200, y, fill="black", dash=(2, 4))
 
-    def desenhar_palavra(self,tempo):
+    def desenhar_palavra(self,tempo, iterador):
         tag = f"passo_{tempo}"
         strt=str(tempo)
-        x=(tempo*50)+55
-        y=575
+        x=(tempo*self.larguraQuadrado)+self.xOrigem
+        y=self.yOrigem + 15
+        y1=self.yOrigem + 5
         self.canvas.create_text(x, y, text=strt, font=("Arial", 10), tags=(tag,))
-        self.canvas.create_line(x, 0, x, 570, fill="gray", dash=(2, 4), tags=(tag,))
+        y=self.yOrigem-(self.alturaQuadrado*iterador)
+        self.canvas.create_line(x, y, x, y1, fill="black", dash=(2, 4), tags=(tag,))
+        for i in range(iterador):
+             x1=(tempo*self.larguraQuadrado)+self.xOrigem
+             y1=self.yOrigem-(i*self.alturaQuadrado)
+             x2=(tempo*self.larguraQuadrado)+(self.larguraQuadrado+self.xOrigem)
+             self.canvas.create_line(x1, y1, x2, y1, fill="black", dash=(2, 4), tags=(tag,))
+        
         
     def limpar_passo(self, tempo):
-        """Deleta todos os elementos gráficos associados a um passo de tempo específico."""
         tag = f"passo_{tempo}"
         self.canvas.delete(tag)
 
@@ -54,16 +68,13 @@ class gerenciador_grafico:
         self.janela.after(33,self.atualizar)
 
     def salvar_canvas_jpg(self, nome="saida.jpg"):
-            # Garante que a geometria da janela está atualizada antes de capturar
+            
             self.janela.update_idletasks()
-
-            # Pega as coordenadas e dimensões da janela principal
             x = self.janela.winfo_rootx()
             y = self.janela.winfo_rooty()
             largura = self.janela.winfo_width()
             altura = self.janela.winfo_height()
 
-            # Define a área de captura (bounding box)
             bbox = (x, y, x + largura, y + altura)
             img = ImageGrab.grab(bbox=bbox)
             img.save(nome, "jpeg")

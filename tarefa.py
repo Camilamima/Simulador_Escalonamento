@@ -7,7 +7,7 @@ class tarefa:
         self.prioridade=prioridade
         self.duracao=int(duracao)
         self.ociosidade=0
-        self.status="Não iniciado" #1 para não iniciado, 2 para ociosos 3 para rodando
+        self.status="Não iniciado"
 
     def set_status(self,j):
         self.status=j
