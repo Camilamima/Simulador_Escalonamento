@@ -1,4 +1,5 @@
-
+from PIL import Image, ImageDraw, ImageGrab
+import io
 import tkinter as tk
 ## gerencia  interface grafica
 class gerenciador_grafico:
@@ -30,10 +31,10 @@ class gerenciador_grafico:
 
     def desenhar_legenda(self,lista):
         for i, iterador in enumerate(lista):
-            strt="T" + str(i) + " (p" + str(iterador.prioridade) + ")"
+            strt="T" + str(i) + " (p" + str(iterador.prioridade) + ",d" + str(iterador.duracao)+")"
             y=550-(iterador.id*25)
             y1=537-(iterador.id*25)
-            self.canvas.create_text(23, y1, text=strt, font=("Arial", 10))
+            self.canvas.create_text(23, y1, text=strt, font=("Arial", 8))
             self.canvas.create_line(15, y, 1200, y, fill="gray", dash=(2, 4))
 
     def desenhar_palavra(self,tempo):
@@ -52,3 +53,7 @@ class gerenciador_grafico:
     def atualizar(self):
         self.move_retanculo(1)
         self.janela.after(33,self.atualizar)
+
+    def salvar_canvas_jpg(self, nome="saida.jpg"):
+            img = ImageGrab.grab()
+            img.save(nome, "jpeg")

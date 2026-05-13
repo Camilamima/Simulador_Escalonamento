@@ -2,23 +2,25 @@ import gerenciador_grafico as gg
 import tarefa as tf
 import copy
 import tkinter as tk
+import io
+from PIL import ImageGrab
  
 class simulador:
     ##inicialização de variaveis
     def __init__(self):
+        self.flag=0
         self.tarefas = []
         self.cpu=2
         self.escalonador=''
-        self.quantum=2
+        self.prontas=[]
         self.Ggrafico = gg.gerenciador_grafico()
-        # Variáveis de estado da simulação para o modo passo a passo
         self.tempo = 0
-        self.quantum_Atual = self.quantum
         self.fila = [] # Fila de execução principal
         
         self.botao_passo = None
         self.botao_executar_tudo = None
         self.botao_retroceder = None
+        self.botao_modificar = None
         self.historico_estados = []
 
     #inicializador
@@ -26,13 +28,13 @@ class simulador:
         self.cria_tarefas()
         self.fila = copy.deepcopy(self.tarefas)
         self.Ggrafico.desenhar_legenda(self.fila)
-        self.salvar_estado_atual()
+        self.salvar_estado_atual(None,None)
 
         # --- Interface de Controle ---
         control_frame = tk.Frame(self.Ggrafico.janela)
         control_frame.pack(side=tk.BOTTOM, pady=10)
 
-        # Botão para retroceder um passo
+        #Botão para retroceder um passo
         self.botao_retroceder = tk.Button(control_frame, text="Retroceder Passo", command=self.retroceder_passo, state="disabled")
         self.botao_retroceder.pack(side=tk.LEFT, padx=10)
 
@@ -53,74 +55,82 @@ class simulador:
         self.botao_passo.config(state="disabled")
         self.botao_executar_tudo.config(state="disabled")
         self.botao_retroceder.config(state="disabled")
-        
-        if self.fila:
+
+        if self.prontas or self.tempo==0:
             self.passo_escalonamento()
             # Agenda a próxima execução se a simulação não tiver terminado
-            if self.fila:
+            ##Continua rodando se não estiver vazio
+            if self.prontas or self.tempo==0:
                 self.Ggrafico.janela.after(50, self.executar_tudo)
 
     def passo_escalonamento(self):
-  
+        quantum_cpu=[]#guarda quantum dos processadores para retorno
+        tarefas_cpu=[]
+        #guarda tarefas rodando
+        ##Se fila for vazia, para a simulação
         if not self.fila:
             self.finalizar_simulacao()
             return
+        ##Desenha o tempo
         self.Ggrafico.desenhar_palavra(self.tempo)
-        #prontas = [t for t in self.fila if t.ingresso <= self.tempo]
-        self.prontas = []
-        for fila in self.fila:
-            if fila.ingresso <= self.tempo:
-                self.prontas.append(fila)
-                #self.quantum_Atual = self.quantum # Reseta o quantum para tarefas que acabaram de chegar
-        #Se houver tarefas prontas, executa a lógica de escalonamento.
+        ##Inclui tarefas na fila de prontas
+
+        for t in self.fila:
+            if t.ingresso <= self.tempo and t.status=='Não iniciado':
+                t.status='Pronta'
+                self.prontas.append(t)
+                #REORDENA TODA VEZ QUE ADICIONA UMA NOVA TAREFA
+                if self.escalonador == "priop":
+                      self.prontas.sort(key=lambda t: (-t.prioridade, t.id))
+                elif self.escalonador == "srtf":
+                        self.prontas.sort(key=lambda t: (t.duracao,t.prioridade))
+
+
         if self.prontas:
+            for cpu in self.cpu:
+                if cpu.quantum_atual % cpu.quantum == 0 or cpu.tarefa_rodando==None:
+                    if cpu.tarefa_rodando is not None:
+                        cpu.tarefa_rodando.status='Pronta'
+                    for tarefa in self.prontas:
+                        if tarefa.status == "Pronta":
+                            tarefa.status = "Rodando"
+                            cpu.tarefa_rodando = tarefa
+                            break
+                cpu.executar(self.Ggrafico,self.tempo)
+                quantum_cpu.append(cpu.quantum_atual)
+                tarefas_cpu.append(cpu.tarefa_rodando)
+            for x in self.prontas:
+                if(x.status=='Pronta'):
+                    self.Ggrafico.desenhar_retangulo(self.tempo,x.id,'white')
 
-            if self.quantum_Atual >= self.quantum and self.escalonador == "priop":##Organiza lista por prioridade (PRIOP)
-                   self.prontas.sort(key=lambda t: (-t.prioridade, not t.status=="Rodando", t.ingresso, t.duracao))
-                   self.quantum_Atual=0
-            elif self.escalonador == "srtf":##Organiza lista por duracao (SRTF)
-                    self.prontas.sort(key=lambda t: (t.duracao, not t.status=="Rodando",t.ingresso))
-                    self.quantum_Atual=0
-            # Executa as tarefas para o tempo atual e atualiza o quantum se uma tarefa terminou.
-            for i, iterador in enumerate(self.prontas):  
-                print(i)
-                if i < self.cpu: 
-                    iterador.status="Rodando"
-                    self.Ggrafico.desenhar_retangulo(self.tempo,iterador.id,iterador.cor)
-                    iterador.duracao-=1
-                    #print("tarefa: " + str(iterador.id) + " duracao: " + str(iterador.duracao))
-                    if iterador.duracao == 0:
-                        self.quantum_Atual=self.quantum-1       
-                else:
-                    iterador.status="Ocioso"
-                    iterador.ociosidade+=1
-                    #print("tarefa: " + str(iterador.id) + " duracao: " + str(iterador.duracao))
-                    self.Ggrafico.desenhar_retangulo(self.tempo,iterador.id,'white')   
-        self.fila = [t for t in self.fila if t.duracao > 0]
+        self.prontas = [t for t in self.prontas if t.duracao > 0]
+        
+
         self.tempo += 1
-        self.quantum_Atual += 1
-
         # Salva o estado após o passo ser concluído
-        self.salvar_estado_atual()
+        self.salvar_estado_atual(quantum_cpu,tarefas_cpu)
         self.botao_retroceder.config(state="normal")
-        #Se a fila ficou vazia, atualiza o botão.
-        if not self.fila:
+        #Se a fila ficou vazia, finaliza a simulação
+        if not self.prontas:
             self.finalizar_simulacao()
 
-    def salvar_estado_atual(self):
-        """Salva o estado atual da simulação (tempo, quantum, fila) no histórico."""
+    def salvar_estado_atual(self,q,t):
+        ##Salva dicionario por tempo
         estado = {
             'tempo': self.tempo,
-            'quantum_Atual': self.quantum_Atual,
-            'fila': copy.deepcopy(self.fila)
+            'fila_prontas': copy.deepcopy(self.prontas),
+            'fila_original': copy.deepcopy(self.fila),
+            'prontas': copy.deepcopy(self.prontas),
+            'cpus': copy.deepcopy(self.cpu),
         }
+        #A cada tempo passado, salva numa fila o tempo, quantum e como está a fila(via dicionario)
         self.historico_estados.append(estado)
 
     def retroceder_passo(self):
         """Restaura a simulação para o estado do passo anterior."""
+        ##Impede retornar se 
         if len(self.historico_estados) <= 1:
             return
-
         # 1. Limpa os desenhos do passo de tempo que será "desfeito"
         tempo_a_limpar = self.tempo - 1
         self.Ggrafico.limpar_passo(tempo_a_limpar)
@@ -131,8 +141,9 @@ class simulador:
         # 3. Carrega o estado anterior, que agora é o último da lista
         estado_anterior = self.historico_estados[-1]
         self.tempo = estado_anterior['tempo']
-        self.quantum_Atual = estado_anterior['quantum_Atual']
-        self.fila = copy.deepcopy(estado_anterior['fila'])
+        self.prontas = copy.deepcopy(estado_anterior['fila_prontas'])
+        self.fila=copy.deepcopy(estado_anterior['fila_original'])
+        self.cpu = copy.deepcopy(estado_anterior['cpus'])
 
         # 4. Reabilita os botões de avançar e atualiza o de retroceder
         self.botao_passo.config(state="normal", text="Próximo Passo")
@@ -149,15 +160,8 @@ class simulador:
             self.botao_executar_tudo.config(state="disabled", text="Finalizado")
         if self.botao_retroceder:
             self.botao_retroceder.config(state="disabled")
+        self.Ggrafico.salvar_canvas_jpg()
 
-    #Tarefa de maior prioridade assume a CPU caso haja uma disponível.
-    #Maior prioridade é definida pela ordem da tarefa na lista de prontas,
-    #ou seja, se houver 4 cpus disponíveis, as 4 primeiras tarefas da 
-    #lista de prontas serão executadas nesse mesmo ciclo
-   ## def executar(self, tempo, prontas):
-
-        
-                
 
     def cria_tarefas(self):
         try:
@@ -172,7 +176,9 @@ class simulador:
                         if len(cabecalho) >= 3:
                             self.escalonador = cabecalho[0]
                             self.quantum = int(cabecalho[1])
-                            self.cpu = int(cabecalho[2])
+                            for i in range(int(cabecalho[2])):
+                                print("Numero id",i)
+                                self.cpu.append(pr.processador(i,self.quantum))
                         continue 
                     valores = linha.split(';')
                     if len(valores) >= 5:
