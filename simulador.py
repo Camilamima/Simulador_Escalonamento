@@ -3,6 +3,8 @@ import tarefa as tf
 import processador as pr
 import copy
 import tkinter as tk
+import io
+from PIL import ImageGrab
  
 class simulador:
     ##inicialização de variaveis
@@ -18,6 +20,7 @@ class simulador:
         self.botao_passo = None
         self.botao_executar_tudo = None
         self.botao_retroceder = None
+        self.botao_modificar = None
         self.historico_estados = []
 
     #inicializador
@@ -53,11 +56,11 @@ class simulador:
         self.botao_executar_tudo.config(state="disabled")
         self.botao_retroceder.config(state="disabled")
 
-        if self.prontas:
+        if self.prontas or self.tempo==0:
             self.passo_escalonamento()
             # Agenda a próxima execução se a simulação não tiver terminado
             ##Continua rodando se não estiver vazio
-            if self.prontas:
+            if self.prontas or self.tempo==0:
                 self.Ggrafico.janela.after(50, self.executar_tudo)
 
     def passo_escalonamento(self):
@@ -155,8 +158,9 @@ class simulador:
             self.botao_passo.config(state="disabled", text="Finalizado")
         if self.botao_executar_tudo:
             self.botao_executar_tudo.config(state="disabled", text="Finalizado")
-        #if self.botao_retroceder:
-            #self.botao_retroceder.config(state="disabled")
+        if self.botao_retroceder:
+            self.botao_retroceder.config(state="disabled")
+        self.Ggrafico.salvar_canvas_jpg()
 
 
     def cria_tarefas(self):

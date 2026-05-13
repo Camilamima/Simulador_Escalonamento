@@ -1,4 +1,5 @@
-
+from PIL import Image, ImageDraw, ImageGrab
+import io
 import tkinter as tk
 ## gerencia  interface grafica
 class gerenciador_grafico:
@@ -52,3 +53,7 @@ class gerenciador_grafico:
     def atualizar(self):
         self.move_retanculo(1)
         self.janela.after(33,self.atualizar)
+
+    def salvar_canvas_jpg(self, nome="saida.jpg"):
+            img = ImageGrab.grab()
+            img.save(nome, "jpeg")
