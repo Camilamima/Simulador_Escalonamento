@@ -5,8 +5,7 @@ import tkinter as tk
 import processador as pr
  
 class simulador:
-    def __init__(self):
-        self.flag=0
+    def __init__(self): #inicialização de variáveis
         self.tarefas = []
         self.cpu=[]
         self.escalonador=''
@@ -19,17 +18,17 @@ class simulador:
         self.botao_retroceder = None
         self.botao_status = None
         self.historico_estados = []
-        self.botao_modifiar = []
+        self.botao_modificar = []
 
     def iniciar(self):
         self.cria_tarefas()
         self.fila = copy.deepcopy(self.tarefas)
         self.Ggrafico.desenhar_grafico(self.fila)
         self.salvar_estado_atual()
-
+        #cria um frame para os botões de controle
         control_frame = tk.Frame(self.Ggrafico.janela)
         control_frame.pack(side=tk.BOTTOM, pady=10)
-
+        #inicialização dos botões
         self.botao_retroceder = tk.Button(control_frame, text="Retroceder Passo", command=self.retroceder_passo, state="disabled")
         self.botao_retroceder.pack(side=tk.LEFT, padx=10)
 
@@ -70,11 +69,10 @@ class simulador:
                 t.status='Pronta'
                 self.prontas.append(t)
                 if self.escalonador == "priop":
-                    self.prontas.sort(key=lambda t: (-t.prioridade, not t.status == 'Rodando', t.ingresso, t.duracao))
+                    self.prontas.sort(key=lambda t: (-t.prioridade,  not t.status == 'Rodando', t.ingresso, t.duracao))
                 elif self.escalonador == "srtf":
                     self.prontas.sort(key=lambda t: (t.duracao, not t.status == 'Rodando', t.ingresso))
                         
-
         if self.prontas:
             for cpu in self.cpu:
                 if cpu.quantum_atual % cpu.quantum == 0 or cpu.tarefa_rodando==None:
@@ -90,10 +88,10 @@ class simulador:
             for cpu in self.cpu:
                 if cpu.ociosidade==1:
                     i += 1
-            self.Ggrafico.desenhar_processador(i,self.tempo, len(self.prontas))
+            self.Ggrafico.desenhar_processador(i,self.tempo, len(self.prontas), self.cpu)
             for x in self.prontas:
                 if(x.status=='Pronta'):
-                    self.Ggrafico.desenhar_retangulo(self.tempo,x.id,'white')
+                    self.Ggrafico.desenhar_retangulo(self.tempo,x.id,'white', 0)
         self.prontas = [t for t in self.prontas if t.duracao > 0 and (t.status=="Pronta" or t.status=="Rodando")]
         self.tempo += 1
         
@@ -129,7 +127,7 @@ class simulador:
 
     def finalizar_simulacao(self):
         self.Ggrafico.desenhar_palavra(self.tempo, len(self.tarefas))
-        self.Ggrafico.desenhar_processador(len(self.cpu),self.tempo, len(self.prontas))
+        self.Ggrafico.desenhar_processador(len(self.cpu),self.tempo, len(self.prontas), self.cpu)
         if self.botao_passo:
             self.botao_passo.config(state="disabled", text="Finalizado")
         if self.botao_executar_tudo:

@@ -12,25 +12,30 @@ class gerenciador_grafico:
         self.larguraQuadrado = 50
 
 
-    def desenhar_retangulo(self,tempo,id,cor):
+    def desenhar_retangulo(self,tempo,id,cor, cpu):
         tag = f"passo_{tempo}"
         x1=(tempo*self.larguraQuadrado)+self.xOrigem
         y1=self.yOrigem-(id*self.alturaQuadrado)
         x2=(tempo*self.larguraQuadrado)+(self.larguraQuadrado+self.xOrigem)
         y2=(self.yOrigem-self.alturaQuadrado)-(id*self.alturaQuadrado)
         self.id=self.canvas.create_rectangle(x1, y1, x2, y2, fill=cor, tags=(tag,))
+       
     
-    def desenhar_processador(self,proc, tempo, tarefas):
+    def desenhar_processador(self,proc, tempo, tarefas, cpu):
         strt="Processadores inativos: " + str(proc)
         strt1="Tarefas prontas: " + str(tarefas) 
-        x=400
+        
+        x=300
         y=self.yOrigem + 40
         tag = f"passo_{tempo}"
         self.canvas.delete("proc_text")
         self.canvas.delete("task_text")
+        self.canvas.delete("quantum_text")
         self.canvas.create_text(x, y, text=strt, font=("Arial", 10), tags=("proc_text", tag))
         self.canvas.create_text(x+200, y, text=strt1, font=("Arial", 10), tags=("task_text",tag,))
-
+        for i in range(len(cpu)):
+            strt2="Quantum cpu "+ str(cpu[i].id) + ": " + str(cpu[i].quantum_atual) 
+            self.canvas.create_text(x+350+(i*110), y, text=strt2, font=("Arial", 10), tags=("quantum_text", tag))
 
     def desenhar_grafico(self,lista):
         for i, iterador in enumerate(lista):
