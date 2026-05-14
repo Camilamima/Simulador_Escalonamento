@@ -1,5 +1,5 @@
 
-class tarefa:
+class tarefa: #Simula a TCB do sistema operacional
     def __init__(self,id,cor,ingresso,prioridade,duracao):
         self.id=id
         self.cor=cor
@@ -7,7 +7,7 @@ class tarefa:
         self.prioridade=prioridade
         self.duracao=int(duracao)
         self.ociosidade=0
-        self.status="Não iniciado"
+        self.status="nova"
 
     def set_status(self,j):
         self.status=j
