@@ -5,6 +5,36 @@ class gerenciador_grafico:
     def __init__(self):
         self.janela = tk.Tk()
         self.canvas = tk.Canvas(self.janela, width=1200, height=600)
+        self.control_frame = tk.Frame(self.janela)
+        self.control_frame.pack(side=tk.TOP, pady=10)
+        self.canvas.config(scrollregion=(0, 0, 4000, 4000))
+
+        self.scroll_y = tk.Scrollbar(
+            self.janela,
+            orient="vertical",
+            command=self.canvas.yview
+        )
+
+        # Scrollbar horizontal
+        self.scroll_x = tk.Scrollbar(
+            self.janela,
+            orient="horizontal",
+            command=self.canvas.xview
+        )
+
+        # Conecta canvas -> scrollbar
+        self.canvas.config(
+            yscrollcommand=self.scroll_y.set,
+            xscrollcommand=self.scroll_x.set
+        )
+
+        # Posicionamento
+        self.scroll_y.pack(side="right", fill="y")
+        self.scroll_x.pack(side="bottom", fill="x")
+
+        self.canvas.pack(side="left", fill="both", expand=True)
+
+
         self.canvas.pack()
         self.xOrigem = 60
         self.yOrigem = 540

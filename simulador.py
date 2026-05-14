@@ -26,26 +26,22 @@ class simulador:
         self.fila = copy.deepcopy(self.tarefas)
         self.Ggrafico.desenhar_grafico(self.fila)
         self.salvar_estado_atual()
+        self.botao_retroceder = tk.Button(self.Ggrafico.control_frame, text="Retroceder Passo", command=self.retroceder_passo, state="disabled")
+        self.botao_retroceder.pack(side=tk.RIGHT, padx=10)
 
-        control_frame = tk.Frame(self.Ggrafico.janela)
-        control_frame.pack(side=tk.BOTTOM, pady=10)
+        self.botao_passo = tk.Button(self.Ggrafico.control_frame, text="Próximo Passo", command=self.passo_escalonamento)
+        self.botao_passo.pack(side=tk.RIGHT, padx=10)
 
-        self.botao_retroceder = tk.Button(control_frame, text="Retroceder Passo", command=self.retroceder_passo, state="disabled")
-        self.botao_retroceder.pack(side=tk.LEFT, padx=10)
-
-        self.botao_passo = tk.Button(control_frame, text="Próximo Passo", command=self.passo_escalonamento)
-        self.botao_passo.pack(side=tk.LEFT, padx=10)
-
-        self.botao_executar_tudo = tk.Button(control_frame, text="Executar Tudo", command=self.executar_tudo)
-        self.botao_executar_tudo.pack(side=tk.LEFT, padx=10)
+        self.botao_executar_tudo = tk.Button(self.Ggrafico.control_frame, text="Executar Tudo", command=self.executar_tudo)
+        self.botao_executar_tudo.pack(side=tk.RIGHT, padx=10)
 
         # Botão para mostrar status simulação
-        self.botao_status=tk.Button(control_frame,text= "Status tarefa", command=lambda: self.Ggrafico.abrir_janela_status(self.fila))
-        self.botao_status.pack(side=tk.LEFT, padx=10)
+        self.botao_status=tk.Button(self.Ggrafico.control_frame,text= "Status tarefa", command=lambda: self.Ggrafico.abrir_janela_status(self.fila))
+        self.botao_status.pack(side=tk.RIGHT, padx=10)
         
         #Botão para modificar tarefas
-        self.botao_modificar=tk.Button(control_frame,text='Modificar tarefa', command=lambda: self.Ggrafico.modificar(self.fila))
-        self.botao_modificar.pack(side=tk.LEFT,padx=10)
+        self.botao_modificar=tk.Button(self.Ggrafico.control_frame,text='Modificar tarefa', command=lambda: self.Ggrafico.modificar(self.fila))
+        self.botao_modificar.pack(side=tk.RIGHT,padx=10)
 
         self.Ggrafico.janela.mainloop()
 
@@ -73,11 +69,15 @@ class simulador:
                     self.prontas.sort(key=lambda t: (-t.prioridade, not t.status == 'Rodando', t.ingresso, t.duracao))
                 elif self.escalonador == "srtf":
                     self.prontas.sort(key=lambda t: (t.duracao, not t.status == 'Rodando', t.ingresso))
-                        
+        print(self.tempo)
+
+        for t in self.prontas:
+            print("ID:", t.id, "Status:", t.status, "Prioriodade", t.prioridade)
 
         if self.prontas:
             for cpu in self.cpu:
                 if cpu.quantum_atual % cpu.quantum == 0 or cpu.tarefa_rodando==None:
+                    print("cpu", cpu.id, "acabou quantum ou trocou tarefa")
                     if cpu.tarefa_rodando is not None:
                         cpu.tarefa_rodando.status='Pronta'
                     for tarefa in self.prontas:
@@ -149,6 +149,7 @@ class simulador:
                         if len(cabecalho) >= 3:
                             self.escalonador = cabecalho[0]
                             for i in range(int(cabecalho[2])):
+                                print("Numero processadores:",i)
                                 if self.escalonador == "priop":
                                     self.cpu.append(pr.processador(i,int(cabecalho[1])))
                                 elif self.escalonador == "srtf":
