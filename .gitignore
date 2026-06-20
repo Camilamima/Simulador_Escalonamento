@@ -10,3 +10,5 @@ venv/
 *.ps
 *.spec
 *.exe
+*.png
+*.pdf

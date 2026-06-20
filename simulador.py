@@ -20,6 +20,8 @@ class simulador:
         self.botao_status = None
         self.historico_estados = []
         self.botao_modificar = []
+        self.botao_carregar_novo = None
+        self.after_id = None
 
     def iniciar(self):
         #Cria as tarefas a partir do arquivo de parâmetros
@@ -57,6 +59,14 @@ class simulador:
         self.botao_modificar=tk.Button(self.Ggrafico.control_frame,text='Modificar tarefa', command=lambda: self.Ggrafico.modificar(self.fila))
         self.botao_modificar.pack(side=tk.RIGHT,padx=10)
 
+        #Botão para salvar imagem
+        self.botao_salvar_imagem = tk.Button(self.Ggrafico.control_frame, text="Salvar Imagem", command=self.Ggrafico.salvar_imagem_manual)
+        self.botao_salvar_imagem.pack(side=tk.RIGHT, padx=10)
+
+        #Botão para selecionar novo arquivo e reiniciar
+        self.botao_carregar_novo = tk.Button(self.Ggrafico.control_frame, text="Selecionar Novo Arquivo", command=self.selecionar_e_reiniciar)
+        self.botao_carregar_novo.pack(side=tk.RIGHT, padx=10)
+
         self.Ggrafico.janela.mainloop()
 
     #Função recursiva para execução continuada da simulação
@@ -66,10 +76,10 @@ class simulador:
         self.botao_executar_tudo.config(state="disabled")
         self.botao_retroceder.config(state="disabled")
 
-        if self.prontas or self.tempo==0:
+        if self.fila or self.tempo==0:
             self.passo_escalonamento()
-            if self.prontas or self.tempo==0:
-                self.Ggrafico.janela.after(50, self.executar_tudo)
+            if self.fila or self.tempo==0:
+                self.after_id = self.Ggrafico.janela.after(50, self.executar_tudo)
 
     #Função para execução de um Tick de tempo do sistema
     def passo_escalonamento(self):
@@ -82,10 +92,12 @@ class simulador:
         self.Ggrafico.desenhar_palavra(self.tempo, len(self.tarefas))
 
         #Adiciona e ordena as tarefas que estão prontas pra execução na fila de prontas
+        ingressos_do_passo = []
         for t in self.fila:
             if t.ingresso <= self.tempo and t.status=='nova':
                 t.status='pronta'
                 self.prontas.append(t)
+                ingressos_do_passo.append(t.id)
                 #Define a ordem de execução das tarefas na fila de prontas
                 if self.escalonador == "priop":
                     self.prontas.sort(key=lambda t: (-t.prioridade,  not t.status == 'rodando', t.ingresso, t.duracao))
@@ -114,8 +126,14 @@ class simulador:
             for x in self.prontas: #Desenha as tarefas que estão esperando processador
                 if(x.status=='pronta'):
                     self.Ggrafico.desenhar_retangulo(self.tempo,x.id,'white', 0)
+
+        # Desenha os indicadores de ingresso para as tarefas que entraram neste passo
+        for id_tarefa in ingressos_do_passo:
+            self.Ggrafico.desenhar_ingresso(self.tempo, id_tarefa)
+
         #Reoganiza a fila de prontas para remover as tarefas finalizadas e manter a ordem correta
         self.prontas = [t for t in self.prontas if t.duracao > 0 and (t.status=="pronta" or t.status=="rodando")]
+        self.fila = [t for t in self.fila if t.duracao > 0]
         
         #avança o tempo do sistema
         self.tempo += 1
@@ -170,6 +188,7 @@ class simulador:
             self.botao_passo.config(state="disabled", text="Finalizado")
         if self.botao_executar_tudo:
             self.botao_executar_tudo.config(state="disabled", text="Finalizado")
+        self.after_id = None
         #Salva a imagem final do gráfico
         self.Ggrafico.salvar_canvas_jpg()
 
@@ -183,7 +202,9 @@ class simulador:
         if not caminho_arquivo:
             print("Nenhum arquivo selecionado.")
             return
+        self.ler_arquivo_config(caminho_arquivo)
 
+    def ler_arquivo_config(self, caminho_arquivo):
         try:
             with open(caminho_arquivo, 'r') as f:
                 linhas = f.readlines()
@@ -212,3 +233,55 @@ class simulador:
                         self.tarefas.append(nova_tarefa)
         except FileNotFoundError:
             print("Arquivo não encontrado.")
+
+    # Abre caixa de diálogo para selecionar novo arquivo de tarefas e reinicia a simulação
+    def selecionar_e_reiniciar(self):
+        caminho_arquivo = filedialog.askopenfilename(
+            initialdir=".",
+            title="Selecionar arquivo de tarefas",
+            filetypes=[("Arquivos de Texto", "*.txt"), ("Todos os arquivos", "*.*")]
+        )
+        if not caminho_arquivo:
+            print("Nenhum arquivo selecionado.")
+            return
+
+        # Cancela qualquer agendamento de execução automática pendente
+        if self.after_id:
+            self.Ggrafico.janela.after_cancel(self.after_id)
+            self.after_id = None
+
+        # Limpa o canvas de elementos antigos
+        self.Ggrafico.canvas.delete("all")
+
+        # Reseta o estado do simulador
+        self.tarefas = []
+        self.cpu = []
+        self.escalonador = ''
+        self.prontas = []
+        self.tempo = 0
+        self.fila = []
+        self.historico_estados = []
+
+        # Carrega as novas tarefas
+        self.ler_arquivo_config(caminho_arquivo)
+
+        if not self.tarefas:
+            print("Nenhuma tarefa carregada.")
+            return
+
+        # Faz uma cópia da fila original
+        self.fila = copy.deepcopy(self.tarefas)
+
+        # Desenha o gráfico inicial com as tarefas a serem simuladas
+        self.Ggrafico.desenhar_grafico(self.fila)
+
+        # Salva o estado inicial
+        self.salvar_estado_atual()
+
+        # Restaura os botões de controle para o estado habilitado/inicial
+        if self.botao_retroceder:
+            self.botao_retroceder.config(state="disabled")
+        if self.botao_passo:
+            self.botao_passo.config(state="normal", text="Próximo Passo")
+        if self.botao_executar_tudo:
+            self.botao_executar_tudo.config(state="normal", text="Executar Tudo")

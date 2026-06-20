@@ -23,6 +23,7 @@ class processador:
         if self.quantum_atual % self.quantum == 0:
             self.reseta_quantum_atual()
         if(self.tarefa_rodando.duracao==0):#finaliza a tarefa caso sua duração chegue a 0
+            Ggrafico.desenhar_fim(tempo, self.tarefa_rodando.id)
             self.tarefa_rodando.status='finalizada'
             self.tarefa_rodando= None
             self.reseta_quantum_atual()

@@ -1,13 +1,13 @@
-from PIL import Image, ImageDraw, ImageGrab
-
+from PIL import Image, ImageDraw, ImageGrab, ImageFont
 import tkinter as tk
+from tkinter import filedialog, messagebox
 class gerenciador_grafico:
     def __init__(self):
         self.janela = tk.Tk()
         self.canvas = tk.Canvas(self.janela, width=1200, height=600)
         self.control_frame = tk.Frame(self.janela)
         self.control_frame.pack(side=tk.TOP, pady=10)
-        self.canvas.config(scrollregion=(0, 0, 4000, 600))
+        self.canvas.config(scrollregion=(0, 0, 600, 1200))
 
         self.scroll_y = tk.Scrollbar(
             self.janela,
@@ -67,13 +67,36 @@ class gerenciador_grafico:
             strt2="Quantum cpu "+ str(cpu[i].id) + ": " + str(cpu[i].quantum_atual) 
             self.canvas.create_text(x+350+(i*110), y, text=strt2, font=("Arial", 10), tags=("quantum_text", tag))
 
+    def atualizar_scrollregion(self, tempo, altura=None):
+        # Calcula a largura necessária para acomodar o passo atual
+        # O x2 do passo atual é (tempo * self.larguraQuadrado) + self.larguraQuadrado + self.xOrigem
+        largura_necessaria = (tempo + 1) * self.larguraQuadrado + self.xOrigem + 100
+        
+        # Garante que a largura seja pelo menos a largura atual visível do canvas ou um mínimo padrão (1200)
+        largura_canvas = self.canvas.winfo_width()
+        largura = max(largura_necessaria, largura_canvas, 1200)
+        
+        # Recupera a altura atual do scrollregion para preservar se não for passada
+        if altura is None:
+            scrollregion = self.canvas.cget("scrollregion")
+            if scrollregion:
+                parts = [int(float(x)) for x in scrollregion.split()]
+                altura = parts[3]
+            else:
+                altura = self.canvas.winfo_height()
+                if altura <= 0:
+                    altura = 600
+                    
+        self.canvas.config(scrollregion=(0, 0, largura, altura))
+
     #desenha o gráfico vertical de tarefas, mostrando o id, prioridade e duração de cada tarefa
     def desenhar_grafico(self,lista):
         # Ajusta a origem Y e a altura do canvas com base no número de tarefas
         num_tarefas = len(lista)
         self.yOrigem = num_tarefas * self.alturaQuadrado + 40
         canvas_height = self.yOrigem + 80
-        self.canvas.config(height=canvas_height, scrollregion=(0, 0, 4000, canvas_height))
+        self.canvas.config(height=canvas_height)
+        self.atualizar_scrollregion(0, altura=canvas_height)
 
         for i, iterador in enumerate(lista):
             strt="T" + str(i) + " (p" + str(iterador.prioridade) + ",d" + str(iterador.duracao)+")"
@@ -97,26 +120,149 @@ class gerenciador_grafico:
              y1=self.yOrigem-(i*self.alturaQuadrado)
              x2=(tempo*self.larguraQuadrado)+(self.larguraQuadrado+self.xOrigem)
              self.canvas.create_line(x1, y1, x2, y1, fill="black", dash=(2, 4), tags=(tag,))
+        self.atualizar_scrollregion(tempo)
         
     #limpa os elementos gráficos de um tempo específico
     def limpar_passo(self, tempo):
         tag = f"passo_{tempo}"
         self.canvas.delete(tag)
+        self.atualizar_scrollregion(max(0, tempo - 1))
 
-    #Salva imagem final do gráfico
+    # desenha o indicador de entrada na fila de prontas (flecha para cima em verde)
+    def desenhar_ingresso(self, tempo, id_tarefa):
+        tag = f"passo_{tempo}"
+        x = (tempo * self.larguraQuadrado) + self.xOrigem
+        y1 = self.yOrigem - (id_tarefa * self.alturaQuadrado)
+        y2 = (self.yOrigem - self.alturaQuadrado) - (id_tarefa * self.alturaQuadrado)
+        
+        # Desenha a haste vertical (preta)
+        self.canvas.create_line(x, y1, x, y2, fill="black", width=2, tags=(tag,))
+        # Desenha a ponta da flecha para cima (y2 é o topo)
+        self.canvas.create_line(x, y2, x - 6, y2 + 6, fill="black", width=2, tags=(tag,))
+        #self.canvas.create_line(x, y2, x + 6, y2 + 6, fill="black", width=2, tags=(tag,))
+
+    # desenha o indicador de fim de execução (flecha para baixo em preto)
+    def desenhar_fim(self, tempo, id_tarefa):
+        tag = f"passo_{tempo}"
+        x = (tempo * self.larguraQuadrado) + self.larguraQuadrado + self.xOrigem
+        y1 = self.yOrigem - (id_tarefa * self.alturaQuadrado)
+        y2 = (self.yOrigem - self.alturaQuadrado) - (id_tarefa * self.alturaQuadrado)
+        
+        # Desenha a haste vertical (preta)
+        self.canvas.create_line(x, y2, x, y1, fill="black", width=2, tags=(tag,))
+        # Desenha a ponta da flecha para baixo (y1 é o fundo)
+        #self.canvas.create_line(x, y1, x - 6, y1 - 6, fill="black", width=2, tags=(tag,))
+        self.canvas.create_line(x, y1, x + 6, y1 - 6, fill="black", width=2, tags=(tag,))
+
+    # Salva imagem do gráfico compreendendo todo o canvas, inclusive a área com scroll
     def salvar_canvas_jpg(self, nome="saida.jpg"):
-            # Garante que a geometria da janela está atualizada antes de capturar
-            self.janela.update_idletasks()
+        self.janela.update_idletasks()
+        
+        # Obtém o tamanho da área de scroll do canvas
+        scrollregion = self.canvas.cget("scrollregion")
+        if scrollregion:
+            parts = [int(float(x)) for x in scrollregion.split()]
+            width, height = parts[2], parts[3]
+        else:
+            width = self.canvas.winfo_width()
+            height = self.canvas.winfo_height()
+            
+        # Fallbacks caso o canvas ainda não tenha dimensões definidas
+        if width <= 0:
+            width = 1200
+        if height <= 0:
+            height = 600
+            
+        # Obtém a cor de fundo do canvas e converte para RGB (0-255)
+        bg_color = self.canvas.cget("bg")
+        try:
+            r, g, b = tuple(x // 256 for x in self.canvas.winfo_rgb(bg_color))
+            bg_rgb = (r, g, b)
+        except Exception:
+            bg_rgb = (240, 240, 240) # Cinza claro padrão
+            
+        img = Image.new("RGB", (width, height), bg_rgb)
+        draw = ImageDraw.Draw(img)
+        
+        def to_rgb(color_str):
+            if not color_str or color_str == "SystemButtonFace":
+                return bg_rgb
+            try:
+                return tuple(x // 256 for x in self.canvas.winfo_rgb(color_str))
+            except Exception:
+                return None
 
-            # Pega as coordenadas e dimensões da janela principal
-            x = self.janela.winfo_rootx()
-            y = self.janela.winfo_rooty()
-            largura = self.janela.winfo_width()
-            altura = self.janela.winfo_height()
-            # Define a área de captura (bounding box)
-            bbox = (x, y, x + largura, y + altura)
-            img = ImageGrab.grab(bbox=bbox)
-            img.save(nome, "jpeg")
+        # Redesenha todos os elementos do canvas na imagem do PIL
+        for item in self.canvas.find_all():
+            item_type = self.canvas.type(item)
+            coords = self.canvas.coords(item)
+            if not coords:
+                continue
+                
+            if item_type == "rectangle":
+                x1, y1, x2, y2 = coords
+                fill_color = self.canvas.itemcget(item, "fill")
+                outline_color = self.canvas.itemcget(item, "outline")
+                
+                fill_rgb = to_rgb(fill_color) if fill_color else None
+                outline_rgb = to_rgb(outline_color) if outline_color else None
+                
+                if fill_color == "":
+                    fill_rgb = None
+                if outline_color == "":
+                    outline_rgb = None
+                    
+                draw.rectangle([x1, y1, x2, y2], fill=fill_rgb, outline=outline_rgb)
+                
+            elif item_type == "line":
+                fill_color = self.canvas.itemcget(item, "fill")
+                fill_rgb = to_rgb(fill_color) if fill_color else (0, 0, 0)
+                try:
+                    line_width = int(float(self.canvas.itemcget(item, "width")))
+                except Exception:
+                    line_width = 1
+                draw.line(coords, fill=fill_rgb, width=line_width)
+                
+            elif item_type == "text":
+                if len(coords) >= 2:
+                    x, y = coords[0], coords[1]
+                    text_str = self.canvas.itemcget(item, "text")
+                    fill_color = self.canvas.itemcget(item, "fill")
+                    fill_rgb = to_rgb(fill_color) if fill_color else (0, 0, 0)
+                    
+                    font_str = self.canvas.itemcget(item, "font")
+                    font_size = 10
+                    if font_str:
+                        parts = font_str.split()
+                        if len(parts) >= 2 and parts[-1].isdigit():
+                            font_size = int(parts[-1])
+                            
+                    try:
+                        font = ImageFont.truetype("arial.ttf", font_size)
+                    except Exception:
+                        font = ImageFont.load_default()
+                        
+                    draw.text((x, y), text_str, fill=fill_rgb, font=font, anchor="mm")
+                    
+        # Salva a imagem com a extensão apropriada
+        ext = nome.split('.')[-1].lower()
+        fmt = "PNG" if ext == "png" else "JPEG"
+        img.save(nome, format=fmt)
+
+    # Abre um diálogo para salvar a imagem manualmente
+    def salvar_imagem_manual(self):
+        caminho = filedialog.asksaveasfilename(
+            initialdir=".",
+            title="Salvar imagem do escalonamento",
+            defaultextension=".png",
+            filetypes=[("Imagem PNG", "*.png"), ("Imagem JPEG", "*.jpg"), ("Todos os arquivos", "*.*")]
+        )
+        if caminho:
+            try:
+                self.salvar_canvas_jpg(caminho)
+                messagebox.showinfo("Sucesso", f"Imagem salva com sucesso em:\n{caminho}")
+            except Exception as e:
+                messagebox.showerror("Erro", f"Falha ao salvar a imagem:\n{str(e)}")
 
 
     #abre janela mostrando o status de todas as tarefas
