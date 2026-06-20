@@ -69,6 +69,12 @@ class gerenciador_grafico:
 
     #desenha o gráfico vertical de tarefas, mostrando o id, prioridade e duração de cada tarefa
     def desenhar_grafico(self,lista):
+        # Ajusta a origem Y e a altura do canvas com base no número de tarefas
+        num_tarefas = len(lista)
+        self.yOrigem = num_tarefas * self.alturaQuadrado + 40
+        canvas_height = self.yOrigem + 80
+        self.canvas.config(height=canvas_height, scrollregion=(0, 0, 4000, canvas_height))
+
         for i, iterador in enumerate(lista):
             strt="T" + str(i) + " (p" + str(iterador.prioridade) + ",d" + str(iterador.duracao)+")"
             y=self.yOrigem-(iterador.id*25)

@@ -2,6 +2,7 @@ import gerenciador_grafico as gg
 import tarefa as tf
 import copy
 import tkinter as tk
+from tkinter import filedialog
 import processador as pr
  
 class simulador:
@@ -12,7 +13,7 @@ class simulador:
         self.prontas=[]
         self.Ggrafico = gg.gerenciador_grafico()
         self.tempo = 0
-        self.fila = [] 
+        self.fila = []
         self.botao_passo = None
         self.botao_executar_tudo = None
         self.botao_retroceder = None
@@ -23,6 +24,10 @@ class simulador:
     def iniciar(self):
         #Cria as tarefas a partir do arquivo de parâmetros
         self.cria_tarefas()
+        if not self.tarefas:
+            print("Nenhuma tarefa carregada. Fechando o simulador.")
+            self.Ggrafico.janela.destroy()
+            return
         #Faz uma cópia da fila original para manipulação durante a simulação, preservando os dados originais
         self.fila = copy.deepcopy(self.tarefas)
 
@@ -81,7 +86,7 @@ class simulador:
             if t.ingresso <= self.tempo and t.status=='nova':
                 t.status='pronta'
                 self.prontas.append(t)
-                #Define a ordem de execução das tarefas na fila de prontas de acordo com o escalonador
+                #Define a ordem de execução das tarefas na fila de prontas
                 if self.escalonador == "priop":
                     self.prontas.sort(key=lambda t: (-t.prioridade,  not t.status == 'rodando', t.ingresso, t.duracao))
                 elif self.escalonador == "srtf":
@@ -111,6 +116,7 @@ class simulador:
                     self.Ggrafico.desenhar_retangulo(self.tempo,x.id,'white', 0)
         #Reoganiza a fila de prontas para remover as tarefas finalizadas e manter a ordem correta
         self.prontas = [t for t in self.prontas if t.duracao > 0 and (t.status=="pronta" or t.status=="rodando")]
+        
         #avança o tempo do sistema
         self.tempo += 1
         
@@ -120,7 +126,7 @@ class simulador:
         #habilita o botão de retroceder passo somente depois do primeiro avanço de tempo
         self.botao_retroceder.config(state="normal")
         #Caso fila de prontas esteja vazia, finaliza a simulação
-        if not self.prontas:
+        if not self.fila:
             self.finalizar_simulacao()
 
 
@@ -169,8 +175,17 @@ class simulador:
 
     #Carrega as tarefas e processadores a partir do arquivo de parametros
     def cria_tarefas(self):
+        caminho_arquivo = filedialog.askopenfilename(
+            initialdir=".",
+            title="Selecionar arquivo de tarefas",
+            filetypes=[("Arquivos de Texto", "*.txt"), ("Todos os arquivos", "*.*")]
+        )
+        if not caminho_arquivo:
+            print("Nenhum arquivo selecionado.")
+            return
+
         try:
-            with open('parametros.txt', 'r') as f:
+            with open(caminho_arquivo, 'r') as f:
                 linhas = f.readlines()
                 for i, linha in enumerate(linhas):
                     linha = linha.strip().lower()#Converte tudo para lower case
@@ -181,7 +196,6 @@ class simulador:
                         if len(cabecalho) >= 3:#Garante que o cabeçalho tem os parametros necessários
                             self.escalonador = cabecalho[0]
                             for i in range(int(cabecalho[2])):
-                                print("Numero processadores:",i)
                                 if self.escalonador == "priop":
                                     self.cpu.append(pr.processador(i,int(cabecalho[1])))
                                 elif self.escalonador == "srtf":
@@ -189,12 +203,11 @@ class simulador:
                         continue 
                     valores = linha.split(';')
                     if len(valores) >= 5:
-                        id_tarefa = int(valores[0])
-                        cor = valores[1]
+                        id_tarefa = int(valores[0])#Remove o 'T' do id da tarefa e converte para inteiro
+                        cor = '#' + valores[1]
                         ingresso = int(valores[2])
                         duracao = int(valores[3]) 
                         prioridade = int(valores[4])
-                        
                         nova_tarefa = tf.tarefa(id_tarefa, cor, ingresso, prioridade, duracao)
                         self.tarefas.append(nova_tarefa)
         except FileNotFoundError:

@@ -1,4 +1,5 @@
 __pycache__/
+build/
 *.pyc
 *.pyo
 *.pyd
@@ -7,3 +8,5 @@ venv/
 *.jpg
 *.txt
 *.ps
+*.spec
+*.exe
