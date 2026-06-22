@@ -7,9 +7,6 @@ class processador:
         self.quantum=qt
         self.quantum_atual=0
         self.tarefa_rodando=None
-
-    def reseta_quantum_atual(self):
-        self.quantum_atual=0
         
     def executar(self,Ggrafico,tempo):
 
@@ -18,13 +15,15 @@ class processador:
             return
         self.ociosidade=0#marca o processador como ocupado
         Ggrafico.desenhar_retangulo(tempo,self.tarefa_rodando.id,self.tarefa_rodando.cor, self.id)
-        self.tarefa_rodando.duracao-=1#decrementa a duração da tarefa atual
-        self.quantum_atual+=1#incrementa o quantum atual do processador
-        if self.quantum_atual % self.quantum == 0:
-            self.reseta_quantum_atual()
+        self.tarefa_rodando.incrementa_passo()
+        self.quantum_atual+=1
+        if self.tarefa_rodando.verifica_quantum==1:
+            self.quantum_atual=0
+            self.tarefa_rodando==None
         if(self.tarefa_rodando.duracao==0):#finaliza a tarefa caso sua duração chegue a 0
             Ggrafico.desenhar_fim(tempo, self.tarefa_rodando.id)
+            self.quantum_atual=0
             self.tarefa_rodando.status='finalizada'
+            self.tarefa_rodando.cpu=None
             self.tarefa_rodando= None
-            self.reseta_quantum_atual()
             

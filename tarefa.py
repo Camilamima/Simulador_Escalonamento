@@ -1,6 +1,6 @@
 
 class tarefa: #Simula a TCB do sistema operacional
-    def __init__(self,id,cor,ingresso,prioridade,duracao):
+    def __init__(self,id,cor,ingresso,prioridade,duracao,quantum):
         self.id=id
         self.cor=cor
         self.ingresso=int(ingresso)
@@ -8,6 +8,31 @@ class tarefa: #Simula a TCB do sistema operacional
         self.duracao=int(duracao)
         self.ociosidade=0
         self.status="nova"
+        self.quantum=quantum
+        self.quantum_atual=0
+        self.prioridade_v=prioridade
+        self.cpu=None
 
-    def set_status(self,j):
-        self.status=j
+    def reseta_quantum(self):
+        self.quantum_atual=0
+        if(self.cpu is not None):
+            self.cpu.tarefa_atual=None
+            self.cpu=None
+        self.status='pronta'
+
+    def incrementa_passo(self):
+        self.duracao-=1
+        self.quantum_atual+=1
+
+    def verifica_quantum(self):
+        if self.quantum_atual==self.quantum:
+            self.reseta_quantum
+            return 1
+        else:
+            return 0
+            
+    def incrementa_prioridade(self):
+        self.prioridade_v+=1
+
+    def reseta_prioridade(self):
+        self.prioridade_v=self.prioridade

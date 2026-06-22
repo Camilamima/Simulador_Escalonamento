@@ -4,6 +4,7 @@ import copy
 import tkinter as tk
 from tkinter import filedialog
 import processador as pr
+import importlib
  
 class simulador:
     def __init__(self): #inicialização de variáveis
@@ -93,21 +94,22 @@ class simulador:
 
         #Adiciona e ordena as tarefas que estão prontas pra execução na fila de prontas
         ingressos_do_passo = []
+        escalonador = importlib.import_module(f"algoritmos.{self.escalonador }")
         for t in self.fila:
             if t.ingresso <= self.tempo and t.status=='nova':
                 t.status='pronta'
                 self.prontas.append(t)
                 ingressos_do_passo.append(t.id)
                 #Define a ordem de execução das tarefas na fila de prontas
-                if self.escalonador == "priop":
-                    self.prontas.sort(key=lambda t: (-t.prioridade,  not t.status == 'rodando', t.ingresso, t.duracao))
-                elif self.escalonador == "srtf":
-                    self.prontas.sort(key=lambda t: (t.duracao, not t.status == 'rodando', t.ingresso))
-
+                escalonador.ordenar(self.prontas)
+                for c in self.cpu:
+                    c.quantum_atual=0
+                    c.tarefa_atual=None
         #Executa as tarefas nos processadores disponíveis, verificando se é necessário trocar de tarefa ou se o quantum acabou                
         if self.prontas:
             for cpu in self.cpu:
-                if cpu.quantum_atual % cpu.quantum == 0 or cpu.tarefa_rodando==None:#verifica se o quantum acabou ou se o processador está ocioso
+                if cpu.quantum_atual % cpu.quantum == 0 or cpu.tarefa_rodando==None:
+                    escalonador.ordenar(self.prontas)#verifica se o quantum acabou ou se o processador está ocioso
                     if cpu.tarefa_rodando is not None:
                         cpu.tarefa_rodando.status='pronta'#Marca como pronta tarefa preemptada anteriormente
                     for tarefa in self.prontas:#percorre fila de prontas
@@ -126,6 +128,9 @@ class simulador:
             for x in self.prontas: #Desenha as tarefas que estão esperando processador
                 if(x.status=='pronta'):
                     self.Ggrafico.desenhar_retangulo(self.tempo,x.id,'white', 0)
+
+
+
 
         # Desenha os indicadores de ingresso para as tarefas que entraram neste passo
         for id_tarefa in ingressos_do_passo:
@@ -190,7 +195,7 @@ class simulador:
             self.botao_executar_tudo.config(state="disabled", text="Finalizado")
         self.after_id = None
         #Salva a imagem final do gráfico
-        self.Ggrafico.salvar_canvas_jpg()
+        self.Ggrafico.salvar_canvas_jpg(self.escalonador)
 
     #Carrega as tarefas e processadores a partir do arquivo de parametros
     def cria_tarefas(self):
@@ -220,16 +225,20 @@ class simulador:
                                 if self.escalonador == "priop":
                                     self.cpu.append(pr.processador(i,int(cabecalho[1])))
                                 elif self.escalonador == "srtf":
-                                    self.cpu.append(pr.processador(i,1))
+                                    self.cpu.append(pr.processador(i,int(cabecalho[1])))
                         continue 
                     valores = linha.split(';')
                     if len(valores) >= 5:
                         id_tarefa = int(valores[0])#Remove o 'T' do id da tarefa e converte para inteiro
-                        cor = '#' + valores[1]
+                        if valores[1].startswith('#'):
+                            cor = valores[1]
+                        else:
+                            cor = '#' + valores[1]
                         ingresso = int(valores[2])
                         duracao = int(valores[3]) 
                         prioridade = int(valores[4])
-                        nova_tarefa = tf.tarefa(id_tarefa, cor, ingresso, prioridade, duracao)
+                        print(int(cabecalho[1]))
+                        nova_tarefa = tf.tarefa(id_tarefa, cor, ingresso, prioridade, duracao,int(cabecalho[1]))
                         self.tarefas.append(nova_tarefa)
         except FileNotFoundError:
             print("Arquivo não encontrado.")
