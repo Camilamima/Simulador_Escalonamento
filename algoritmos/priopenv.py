@@ -1,6 +1,8 @@
 def ordenar(prontas):
     prontas.sort(
         key=lambda t: (
+            t.status == 'suspensa_mutex',  # 0 = ok, 1 = vai pro fim
+            t.status == 'suspensa',        # se existir outro tipo
             -t.prioridade_v,      # 1º critério
             -t.prioridade,        # 2º critério
             not t.status == 'rodando',  # 3º
