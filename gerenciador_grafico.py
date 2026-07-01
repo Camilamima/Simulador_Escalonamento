@@ -45,11 +45,29 @@ class gerenciador_grafico:
     def desenhar_retangulo(self,tempo,id,cor, cpu):
         tag = f"passo_{tempo}"
         x1=(tempo*self.larguraQuadrado)+self.xOrigem
-        y1=self.yOrigem-(id*self.alturaQuadrado)
+        y1=self.yOrigem-((id-1)*self.alturaQuadrado)
         x2=(tempo*self.larguraQuadrado)+(self.larguraQuadrado+self.xOrigem)
-        y2=(self.yOrigem-self.alturaQuadrado)-(id*self.alturaQuadrado)
+        y2=(self.yOrigem-self.alturaQuadrado)-((id-1)*self.alturaQuadrado)
         self.id=self.canvas.create_rectangle(x1, y1, x2, y2, fill=cor, tags=(tag,))
-       
+        
+
+    def desenhar_retangulo_envelhicimento(self,tempo,id,cor, cpu,prioridade):
+        tag = f"passo_{tempo}"
+        x1=(tempo*self.larguraQuadrado)+self.xOrigem
+        y1=self.yOrigem-((id-1)*self.alturaQuadrado)
+        x2=(tempo*self.larguraQuadrado)+(self.larguraQuadrado+self.xOrigem)
+        y2=(self.yOrigem-self.alturaQuadrado)-((id-1)*self.alturaQuadrado)
+        self.id=self.canvas.create_rectangle(x1, y1, x2, y2, fill=cor, tags=(tag,))
+        xc = (x1 + x2) / 2
+        yc = (y1 + y2) / 2
+
+        self.canvas.create_text(
+            xc,
+            yc,
+            text=str(prioridade),   # ou prioridade_v
+            fill="black",
+            tags=(tag,)
+        )
     
     #desenha o estado atual dos processadores, tarefas prontas e quantum atual de cada processador
     def desenhar_processador(self,proc, tempo, tarefas, cpu):
@@ -99,9 +117,9 @@ class gerenciador_grafico:
         self.atualizar_scrollregion(0, altura=canvas_height)
 
         for i, iterador in enumerate(lista):
-            strt="T" + str(i) + " (p" + str(iterador.prioridade) + ",d" + str(iterador.duracao)+")"
+            strt = "T" + str(iterador.id) + " (p" + str(iterador.prioridade) + ", d" + str(iterador.duracao) + ")\n(i" + str(iterador.ingresso) + ")"
             y=self.yOrigem-(iterador.id*25)
-            y1=(self.yOrigem-(self.alturaQuadrado/2))-(iterador.id*self.alturaQuadrado)
+            y1=(self.yOrigem-(self.alturaQuadrado/2))-((iterador.id-1)*self.alturaQuadrado)
             x=self.xOrigem-30
             self.canvas.create_text(x, y1, text=strt, font=("Arial", 8))
 

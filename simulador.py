@@ -11,6 +11,7 @@ class simulador:
         self.tarefas = []
         self.cpu=[]
         self.escalonador=''
+        self.compara=''
         self.prontas=[]
         self.Ggrafico = gg.gerenciador_grafico()
         self.tempo = 0
@@ -100,21 +101,23 @@ class simulador:
                 t.status='pronta'
                 self.prontas.append(t)
                 ingressos_do_passo.append(t.id)
-                #Define a ordem de execução das tarefas na fila de prontas
-                escalonador.ordenar(self.prontas)
-                for c in self.cpu:
-                    c.quantum_atual=0
-                    c.tarefa_atual=None
+
+        
+        escalonador.ordenar(self.prontas)
+
         #Executa as tarefas nos processadores disponíveis, verificando se é necessário trocar de tarefa ou se o quantum acabou                
         if self.prontas:
             for cpu in self.cpu:
                 if cpu.quantum_atual % cpu.quantum == 0 or cpu.tarefa_rodando==None:
-                    escalonador.ordenar(self.prontas)#verifica se o quantum acabou ou se o processador está ocioso
                     if cpu.tarefa_rodando is not None:
                         cpu.tarefa_rodando.status='pronta'#Marca como pronta tarefa preemptada anteriormente
+                    else:
+                        escalonador.ordenar(self.prontas)
                     for tarefa in self.prontas:#percorre fila de prontas
                         if tarefa.status == "pronta": #Encontra a primeira tarefa pronta para execução
                             tarefa.status = "rodando"
+                            tarefa.ociosidade = 0
+                            tarefa.reseta_prioridade()
                             cpu.tarefa_rodando = tarefa #atribui tarefa para o processador
                             break
                 cpu.executar(self.Ggrafico,self.tempo) #Executa a tarefa no processador e atualiza o gráfico 
@@ -127,7 +130,12 @@ class simulador:
 
             for x in self.prontas: #Desenha as tarefas que estão esperando processador
                 if(x.status=='pronta'):
-                    self.Ggrafico.desenhar_retangulo(self.tempo,x.id,'white', 0)
+                    if(self.escalonador!='priopenv'):
+                        self.Ggrafico.desenhar_retangulo(self.tempo,x.id,'white', 0)
+                    else:
+                        self.Ggrafico.desenhar_retangulo_envelhicimento(self.tempo,x.id,'white', 0,x.prioridade_v)
+                    x.ociosidade+=1
+                    x.incrementa_prioridade()
 
 
 
@@ -221,15 +229,16 @@ class simulador:
                         cabecalho = linha.split(';')
                         if len(cabecalho) >= 3:#Garante que o cabeçalho tem os parametros necessários
                             self.escalonador = cabecalho[0]
+                            if self.escalonador=='priopenv':
+                                alpha=cabecalho[3]
+                            else:
+                                alpha=0
                             for i in range(int(cabecalho[2])):
-                                if self.escalonador == "priop":
-                                    self.cpu.append(pr.processador(i,int(cabecalho[1])))
-                                elif self.escalonador == "srtf":
-                                    self.cpu.append(pr.processador(i,int(cabecalho[1])))
+                                self.cpu.append(pr.processador(i,int(cabecalho[1])))
                         continue 
                     valores = linha.split(';')
                     if len(valores) >= 5:
-                        id_tarefa = int(valores[0])#Remove o 'T' do id da tarefa e converte para inteiro
+                        id_tarefa = int(valores[0].replace("t", ""))
                         if valores[1].startswith('#'):
                             cor = valores[1]
                         else:
@@ -237,8 +246,7 @@ class simulador:
                         ingresso = int(valores[2])
                         duracao = int(valores[3]) 
                         prioridade = int(valores[4])
-                        print(int(cabecalho[1]))
-                        nova_tarefa = tf.tarefa(id_tarefa, cor, ingresso, prioridade, duracao,int(cabecalho[1]))
+                        nova_tarefa = tf.tarefa(id_tarefa, cor, ingresso, prioridade, duracao,int(cabecalho[1]),alpha)
                         self.tarefas.append(nova_tarefa)
         except FileNotFoundError:
             print("Arquivo não encontrado.")
@@ -265,7 +273,7 @@ class simulador:
         # Reseta o estado do simulador
         self.tarefas = []
         self.cpu = []
-        self.escalonador = ''
+        c = ''
         self.prontas = []
         self.tempo = 0
         self.fila = []

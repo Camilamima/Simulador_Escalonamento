@@ -1,6 +1,6 @@
 
 class tarefa: #Simula a TCB do sistema operacional
-    def __init__(self,id,cor,ingresso,prioridade,duracao,quantum):
+    def __init__(self,id,cor,ingresso,prioridade,duracao,quantum,alfa):
         self.id=id
         self.cor=cor
         self.ingresso=int(ingresso)
@@ -12,6 +12,7 @@ class tarefa: #Simula a TCB do sistema operacional
         self.quantum_atual=0
         self.prioridade_v=prioridade
         self.cpu=None
+        self.alfa=int(alfa)
 
     def reseta_quantum(self):
         self.quantum_atual=0
@@ -30,9 +31,10 @@ class tarefa: #Simula a TCB do sistema operacional
             return 1
         else:
             return 0
-            
+        
     def incrementa_prioridade(self):
-        self.prioridade_v+=1
+        self.prioridade_v = self.prioridade + (self.ociosidade * self.alfa)
+
 
     def reseta_prioridade(self):
         self.prioridade_v=self.prioridade
