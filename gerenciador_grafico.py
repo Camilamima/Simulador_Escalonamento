@@ -68,6 +68,24 @@ class gerenciador_grafico:
             fill="black",
             tags=(tag,)
         )
+
+    def desenhar_retangulo_mutex(self,tempo,id,cor):
+        tag = f"passo_{tempo}"
+        x1=(tempo*self.larguraQuadrado)+self.xOrigem
+        y1=self.yOrigem-((id-1)*self.alturaQuadrado)
+        x2=(tempo*self.larguraQuadrado)+(self.larguraQuadrado+self.xOrigem)
+        y2=(self.yOrigem-self.alturaQuadrado)-((id-1)*self.alturaQuadrado)
+        self.id=self.canvas.create_rectangle(x1, y1, x2, y2, fill=cor, tags=(tag,))
+        xc = (x1 + x2) / 2
+        yc = (y1 + y2) / 2
+
+        self.canvas.create_text(
+            xc,
+            yc,
+            text="MTX",   # ou prioridade_v
+            fill="white",
+            tags=(tag,)
+        )
     
     #desenha o estado atual dos processadores, tarefas prontas e quantum atual de cada processador
     def desenhar_processador(self,proc, tempo, tarefas, cpu):

@@ -104,6 +104,18 @@ class simulador:
                 self.prontas.append(t)
                 ingressos_do_passo.append(t.id)
 
+        #Verifica se alguma tarefa pediu o mutex no tempo atual:
+
+        for t in self.prontas:#percorre tarefas
+            for i in t.mutex_info:#percorre informações dos mutexs das tarefas
+                if i["inicio"]==t.rodado and t.status!="suspensa_mutex":#verifica se tá no tempo de entrar um mutex
+                    for m in self.mutex:#procura o mutex com o id que stá no info da terefa no loop e no if
+                        if m.id==i["id"]:
+                            print(f"Tarefa de ID {t.id} pediu a utilização do mutex {m.id}")
+                            m.solicita_mutex(t)
+                            break
+
+
         
         escalonador.ordenar(self.prontas)
 
@@ -138,6 +150,8 @@ class simulador:
                         self.Ggrafico.desenhar_retangulo_envelhicimento(self.tempo,x.id,'white', 0,x.prioridade_v)
                     x.ociosidade+=1
                     x.incrementa_prioridade()
+                if(x.status=='suspensa_mutex'):
+                    self.Ggrafico.desenhar_retangulo_mutex(self.tempo,x.id,'black')
 
 
 
@@ -147,7 +161,7 @@ class simulador:
             self.Ggrafico.desenhar_ingresso(self.tempo, id_tarefa)
 
         #Reoganiza a fila de prontas para remover as tarefas finalizadas e manter a ordem correta
-        self.prontas = [t for t in self.prontas if t.duracao > 0 and (t.status=="pronta" or t.status=="rodando")]
+        self.prontas = [t for t in self.prontas if t.duracao > 0 and (t.status=="pronta" or t.status=="rodando" or t.status=='suspensa_mutex')]
         self.fila = [t for t in self.fila if t.duracao > 0]
         
         #avança o tempo do sistema
@@ -170,6 +184,7 @@ class simulador:
             'fila_prontas': copy.deepcopy(self.prontas),
             'fila_original': copy.deepcopy(self.fila),
             'cpus': copy.deepcopy(self.cpu),
+            'mutex': copy.deepcopy(self.mutex)
         }
         self.historico_estados.append(estado)
 
@@ -187,6 +202,7 @@ class simulador:
         self.prontas = copy.deepcopy(estado_anterior['fila_prontas'])
         self.fila=copy.deepcopy(estado_anterior['fila_original'])
         self.cpu = copy.deepcopy(estado_anterior['cpus'])
+        self.mutex=copy.deepcopy(estado_anterior['mutex'])
         self.botao_passo.config(state="normal", text="Próximo Passo")
         self.botao_executar_tudo.config(state="normal", text="Executar Tudo")
         #Se não houver mais estados para retroceder, desabilita o botão de retroceder passo
@@ -249,6 +265,25 @@ class simulador:
                         duracao = int(valores[3]) 
                         prioridade = int(valores[4])
                         nova_tarefa = tf.tarefa(id_tarefa, cor, ingresso, prioridade, duracao,int(cabecalho[1]),alpha)
+                        ##Informações referentes a MUTEX
+                        for l in valores:
+                            if str(l).lower().startswith("ml"):
+                               id_entrada,instante_e=str(l).split(":")
+                               id_entrada = int(id_entrada[2:])
+                               nova_tarefa.mutex_info.append({
+                                   "id":id_entrada,
+                                   "inicio":int(instante_e),
+                                   "fim":0
+                               })
+                               if not any(m.id == id_entrada for m in self.mutex):
+                                   self.mutex.append(m.Mutex(id_entrada))
+                            elif str(l).lower().startswith("mu"):
+                                id_saida,instante_s=str(l).split(":")
+                                id_saida = int(id_saida[2:])
+                                for i in nova_tarefa.mutex_info:
+                                    if i["id"]==id_saida:
+                                        i["fim"]=int(instante_s)
+                                        break
                         self.tarefas.append(nova_tarefa)
         except FileNotFoundError:
             print("Arquivo não encontrado.")
