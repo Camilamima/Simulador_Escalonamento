@@ -12,3 +12,6 @@ venv/
 *.exe
 *.png
 *.pdf
+priop
+*.ps
+srtf
