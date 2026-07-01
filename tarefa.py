@@ -13,6 +13,7 @@ class tarefa: #Simula a TCB do sistema operacional
         self.prioridade_v=prioridade
         self.cpu=None
         self.alfa=int(alfa)
+        self.mutex_id=0
 
     def reseta_quantum(self):
         self.quantum_atual=0

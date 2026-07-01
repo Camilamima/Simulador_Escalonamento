@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import filedialog
 import processador as pr
 import importlib
+import mutex as m
  
 class simulador:
     def __init__(self): #inicialização de variáveis
@@ -24,6 +25,7 @@ class simulador:
         self.botao_modificar = []
         self.botao_carregar_novo = None
         self.after_id = None
+        self.mutex=[]
 
     def iniciar(self):
         #Cria as tarefas a partir do arquivo de parâmetros
