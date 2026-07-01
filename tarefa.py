@@ -1,6 +1,6 @@
 
 class tarefa: #Simula a TCB do sistema operacional
-    def __init__(self,id,cor,ingresso,prioridade,duracao,quantum,alfa):
+    def __init__(self,id,cor,ingresso,prioridade,duracao,quantum,alfa,io):
         self.id=id
         self.cor=cor
         self.ingresso=int(ingresso)
@@ -14,6 +14,8 @@ class tarefa: #Simula a TCB do sistema operacional
         self.cpu=None
         self.alfa=int(alfa)
         self.mutex_id=0
+        self.io=io
+        self.tempoexec=0
 
     def reseta_quantum(self):
         self.quantum_atual=0
@@ -23,8 +25,9 @@ class tarefa: #Simula a TCB do sistema operacional
         self.status='pronta'
 
     def incrementa_passo(self):
-        self.duracao-=1
-        self.quantum_atual+=1
+        self.duracao -= 1
+        self.quantum_atual += 1
+        self.tempoexec += 1
 
     def verifica_quantum(self):
         if self.quantum_atual==self.quantum:

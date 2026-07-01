@@ -51,7 +51,7 @@ class gerenciador_grafico:
         self.id=self.canvas.create_rectangle(x1, y1, x2, y2, fill=cor, tags=(tag,))
         
 
-    def desenhar_retangulo_envelhicimento(self,tempo,id,cor, cpu,prioridade):
+    def desenhar_retangulo_envelhecimento(self,tempo,id,cor, cpu,prioridade):
         tag = f"passo_{tempo}"
         x1=(tempo*self.larguraQuadrado)+self.xOrigem
         y1=self.yOrigem-((id-1)*self.alturaQuadrado)
@@ -69,6 +69,53 @@ class gerenciador_grafico:
             tags=(tag,)
         )
     
+    def desenhar_retangulo_io(self,tempo,id,cor, cpu,prioridade):
+        tag = f"passo_{tempo}"
+        x1=(tempo*self.larguraQuadrado)+self.xOrigem
+        y1=self.yOrigem-((id-1)*self.alturaQuadrado)
+        x2=(tempo*self.larguraQuadrado)+(self.larguraQuadrado+self.xOrigem)
+        y2=(self.yOrigem-self.alturaQuadrado)-((id-1)*self.alturaQuadrado)
+        self.id=self.canvas.create_rectangle(x1, y1, x2, y2, fill=cor, tags=(tag,))
+        
+        # Desenha as linhas transversais (diagonais)
+        left = min(x1, x2)
+        right = max(x1, x2)
+        top = min(y1, y2)
+        bottom = max(y1, y2)
+        h = bottom - top
+        spacing = 8
+        
+        x_start = left - h
+        while x_start < right:
+            x1_line = x_start
+            y1_line = top
+            x2_line = x_start + h
+            y2_line = bottom
+            
+            if x1_line < left:
+                y1_line = top + (left - x1_line)
+                x1_line = left
+                
+            if x2_line > right:
+                y2_line = bottom - (x2_line - right)
+                x2_line = right
+                
+            if x1_line < x2_line:
+                self.canvas.create_line(x1_line, y1_line, x2_line, y2_line, fill="black", tags=(tag,))
+            
+            x_start += spacing
+
+        xc = (x1 + x2) / 2
+        yc = (y1 + y2) / 2
+
+        self.canvas.create_text(
+            xc,
+            yc,
+            text=str(prioridade),   # ou prioridade_v
+            fill="black",
+            tags=(tag,)
+        )
+
     #desenha o estado atual dos processadores, tarefas prontas e quantum atual de cada processador
     def desenhar_processador(self,proc, tempo, tarefas, cpu):
         strt="Processadores inativos: " + str(proc)
@@ -150,8 +197,8 @@ class gerenciador_grafico:
     def desenhar_ingresso(self, tempo, id_tarefa):
         tag = f"passo_{tempo}"
         x = (tempo * self.larguraQuadrado) + self.xOrigem
-        y1 = self.yOrigem - (id_tarefa * self.alturaQuadrado)
-        y2 = (self.yOrigem - self.alturaQuadrado) - (id_tarefa * self.alturaQuadrado)
+        y1 = self.yOrigem - ((id_tarefa-1) * self.alturaQuadrado)
+        y2 = (self.yOrigem - self.alturaQuadrado) - ((id_tarefa-1) * self.alturaQuadrado)
         
         # Desenha a haste vertical (preta)
         self.canvas.create_line(x, y1, x, y2, fill="black", width=2, tags=(tag,))
@@ -163,8 +210,8 @@ class gerenciador_grafico:
     def desenhar_fim(self, tempo, id_tarefa):
         tag = f"passo_{tempo}"
         x = (tempo * self.larguraQuadrado) + self.larguraQuadrado + self.xOrigem
-        y1 = self.yOrigem - (id_tarefa * self.alturaQuadrado)
-        y2 = (self.yOrigem - self.alturaQuadrado) - (id_tarefa * self.alturaQuadrado)
+        y1 = self.yOrigem - ((id_tarefa -1 ) * self.alturaQuadrado)
+        y2 = (self.yOrigem - self.alturaQuadrado) - ((id_tarefa-1) * self.alturaQuadrado)
         
         # Desenha a haste vertical (preta)
         self.canvas.create_line(x, y2, x, y1, fill="black", width=2, tags=(tag,))

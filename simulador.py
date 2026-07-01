@@ -1,3 +1,4 @@
+from PIL import TiffImagePlugin
 import gerenciador_grafico as gg
 import tarefa as tf
 import copy
@@ -26,6 +27,7 @@ class simulador:
         self.botao_carregar_novo = None
         self.after_id = None
         self.mutex=[]
+        self.io=[]
 
     def iniciar(self):
         #Cria as tarefas a partir do arquivo de parâmetros
@@ -107,6 +109,15 @@ class simulador:
         
         escalonador.ordenar(self.prontas)
 
+        # Verifica se alguma tarefa em execução em algum processador precisa entrar em I/O
+        for cpu in self.cpu:
+            if cpu.tarefa_rodando is not None:
+                t = cpu.tarefa_rodando
+                if t.io is not None and len(t.io) > 0 and t.io[0][0] == t.tempoexec:
+                    t.status = "IO"
+                    cpu.tarefa_rodando = None
+                    cpu.quantum_atual = 0
+
         #Executa as tarefas nos processadores disponíveis, verificando se é necessário trocar de tarefa ou se o quantum acabou                
         if self.prontas:
             for cpu in self.cpu:
@@ -116,7 +127,11 @@ class simulador:
                     else:
                         escalonador.ordenar(self.prontas)
                     for tarefa in self.prontas:#percorre fila de prontas
+                        
                         if tarefa.status == "pronta": #Encontra a primeira tarefa pronta para execução
+                            if tarefa.io is not None and len(tarefa.io) > 0 and tarefa.io[0][0] == tarefa.tempoexec:
+                                tarefa.status = "IO"
+                                continue
                             tarefa.status = "rodando"
                             tarefa.ociosidade = 0
                             tarefa.reseta_prioridade()
@@ -135,19 +150,33 @@ class simulador:
                     if(self.escalonador!='priopenv'):
                         self.Ggrafico.desenhar_retangulo(self.tempo,x.id,'white', 0)
                     else:
-                        self.Ggrafico.desenhar_retangulo_envelhicimento(self.tempo,x.id,'white', 0,x.prioridade_v)
+                        self.Ggrafico.desenhar_retangulo_envelhecimento(self.tempo,x.id,'white', 0,x.prioridade_v)
+                    x.ociosidade+=1
+                    x.incrementa_prioridade()
+                if(x.status=="IO"):
+                    if(self.escalonador!='priopenv'):
+                        self.Ggrafico.desenhar_retangulo_io(self.tempo,x.id,'white', 0, "")
+                    else:
+                        self.Ggrafico.desenhar_retangulo_io(self.tempo,x.id,'white', 0,x.prioridade_v)
+
                     x.ociosidade+=1
                     x.incrementa_prioridade()
 
-
-
+        # Decrementa o tempo restante das tarefas em I/O
+        for t in self.prontas:
+            if t.status == "IO":
+                if t.io is not None and len(t.io) > 0:
+                    t.io[0][1] -= 1
+                    if t.io[0][1] <= 0:
+                        t.status = "pronta"
+                        t.io.pop(0)
 
         # Desenha os indicadores de ingresso para as tarefas que entraram neste passo
         for id_tarefa in ingressos_do_passo:
             self.Ggrafico.desenhar_ingresso(self.tempo, id_tarefa)
 
         #Reoganiza a fila de prontas para remover as tarefas finalizadas e manter a ordem correta
-        self.prontas = [t for t in self.prontas if t.duracao > 0 and (t.status=="pronta" or t.status=="rodando")]
+        self.prontas = [t for t in self.prontas if t.duracao > 0 and (t.status=="pronta" or t.status=="rodando" or t.status=="IO")]
         self.fila = [t for t in self.fila if t.duracao > 0]
         
         #avança o tempo do sistema
@@ -248,7 +277,20 @@ class simulador:
                         ingresso = int(valores[2])
                         duracao = int(valores[3]) 
                         prioridade = int(valores[4])
-                        nova_tarefa = tf.tarefa(id_tarefa, cor, ingresso, prioridade, duracao,int(cabecalho[1]),alpha)
+                        if  len(valores) > 5:
+                            io=[]
+                            for i in range(5,len(valores)):
+                                sub=valores[i].split(':')
+                                if sub[0]=='io':
+                                    sub=sub[1].split("-")
+                                    io.append([int(sub[0]),int(sub[1])])
+                                else:
+                                    continue #TODO FAZER O MUTEX
+                                    #self.mutex.append([sub[0],int(sub[1]),0])
+                        if len(io)>0:
+                            nova_tarefa = tf.tarefa(id_tarefa, cor, ingresso, prioridade, duracao,int(cabecalho[1]),alpha,io)
+                        else:
+                            nova_tarefa = tf.tarefa(id_tarefa, cor, ingresso, prioridade, duracao,int(cabecalho[1]),alpha,None)
                         self.tarefas.append(nova_tarefa)
         except FileNotFoundError:
             print("Arquivo não encontrado.")
