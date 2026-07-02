@@ -107,22 +107,7 @@ class simulador:
                 self.prontas.append(t)
                 ingressos_do_passo.append(t.id)
 
-        #Verifica se alguma tarefa pediu o mutex no tempo atual:
-        for t in self.prontas:
-            for i in t.mutex_info:
-                if i["inicio"] == t.rodado and not i.get("solicitado", False) and t.status != "suspensa_mutex" and t.status != "IO":
-                    for m in self.mutex:
-                        if m.id == i["id"]:
-                            print(f"Tarefa de ID {t.id} pediu a utilização do mutex {m.id} no instante: {self.tempo}")
-                            i["solicitado"] = True
-                            m.solicita_mutex(t)
-                            # Se a tarefa agora está suspensa_mutex, precisamos tirá-la da CPU que a estava executando
-                            if t.status == 'suspensa_mutex':
-                                for cpu in self.cpu:
-                                    if cpu.tarefa_rodando == t:
-                                        cpu.tarefa_rodando = None
-                                        cpu.quantum_atual = 0
-                            break
+        # (A solicitação de mutex agora é realizada durante a execução da tarefa)
         
         escalonador.ordenar(self.prontas)
 
@@ -154,6 +139,20 @@ class simulador:
                             tarefa.reseta_prioridade()
                             cpu.tarefa_rodando = tarefa #atribui tarefa para o processador
                             break
+                # Verifica se a tarefa alocada na CPU precisa solicitar o mutex
+                if cpu.tarefa_rodando is not None:
+                    t = cpu.tarefa_rodando
+                    for i in t.mutex_info:
+                        if i["inicio"] == t.rodado and not i.get("solicitado", False):
+                            for m in self.mutex:
+                                if m.id == i["id"]:
+                                    print(f"Tarefa de ID {t.id} pediu a utilização do mutex {m.id} no instante: {self.tempo}")
+                                    i["solicitado"] = True
+                                    m.solicita_mutex(t)
+                                    if t.status == 'suspensa_mutex':
+                                        cpu.tarefa_rodando = None
+                                        cpu.quantum_atual = 0
+                                    break
                 cpu.executar(self.Ggrafico,self.tempo) #Executa a tarefa no processador e atualiza o gráfico 
             i = 0
             for cpu in self.cpu:#verifica quantos processadores estão ociosos
@@ -192,8 +191,9 @@ class simulador:
                 if t.io is not None and len(t.io) > 0:
                     t.io[0][1] -= 1
                     if t.io[0][1] <= 0:
-                        t.status = "pronta"
                         t.io.pop(0)
+                        if not t.io:
+                            t.status = "pronta"
 
         # Desenha os indicadores de ingresso para as tarefas que entraram neste passo
         for id_tarefa in ingressos_do_passo:
