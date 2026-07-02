@@ -113,7 +113,7 @@ class simulador:
                 if i["inicio"] == t.rodado and not i.get("solicitado", False) and t.status != "suspensa_mutex" and t.status != "IO":
                     for m in self.mutex:
                         if m.id == i["id"]:
-                            print(f"Tarefa de ID {t.id} pediu a utilização do mutex {m.id}")
+                            print(f"Tarefa de ID {t.id} pediu a utilização do mutex {m.id} no instante: {self.tempo}")
                             i["solicitado"] = True
                             m.solicita_mutex(t)
                             # Se a tarefa agora está suspensa_mutex, precisamos tirá-la da CPU que a estava executando
@@ -322,6 +322,8 @@ class simulador:
                                     continue
                                 if sub[0] == 'io':
                                     sub = sub[1].split("-")
+                                    if int(sub[1]) < 1:
+                                        sub[1] = 1
                                     io.append([int(sub[0]), int(sub[1])])
                                 else:
                                     if sub[0].startswith("ml"):
@@ -338,7 +340,6 @@ class simulador:
                                         )
                                         id_entrada+=1
                                         if not any(mut.id == id_mutex for mut in self.mutex):
-                                            print(id_mutex)
                                             self.mutex.append(m.Mutex(id_mutex))
                                     elif sub[0].startswith("mu"):
                                         id_mutex_saida, instante_s = sub

@@ -15,6 +15,8 @@ class processador:
             return
         self.ociosidade=0#marca o processador como ocupado
         Ggrafico.desenhar_retangulo(tempo,self.tarefa_rodando.id,self.tarefa_rodando.cor, self.id)
+        if self.tarefa_rodando.mutex_atual is not None:
+            Ggrafico.desenhar_tag_mutex(tempo, self.tarefa_rodando.id, self.tarefa_rodando.mutex_atual.id)
         self.tarefa_rodando.incrementa_passo()
         self.quantum_atual+=1
         if self.tarefa_rodando.verifica_quantum==1:

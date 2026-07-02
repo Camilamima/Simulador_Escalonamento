@@ -18,15 +18,22 @@ class Mutex:
     def libera_mutex(self):
         if self.dono:
             self.dono.mutex_atual = None
+            self.dono = None
             print("liberou mutex")  
         if self.fila_espera:
             # pega próxima tarefa
             prox = self.fila_espera.pop(0)
-            print(f"tarefa {prox.id} assumiu o mutex {self.id}")
+            
+            prox.status = 'pronta'
+            for item in prox.mutex_info:
+                if item["id"] == self.id:
+                    item["solicitado"] = False
+                    break
 
-            self.dono = prox
+            self.livre = True
+            """self.dono = prox
             prox.mutex_atual = self
-            self.dono.status = 'pronta'
+            self.dono.status = 'pronta'"""
         else:
             self.dono = None
             self.livre = True

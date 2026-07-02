@@ -33,15 +33,14 @@ class tarefa: #Simula a TCB do sistema operacional
         self.tempoexec += 1
         if self.mutex_atual is not None:
             for i in self.mutex_info:
-                if i["id"] == self.mutex_atual.id and i.get("solicitado", False) and i["fim"] > 0:
-                    i["fim"] -= 1  # tempo restante no mutex
+                if i["id"] == self.mutex_atual.id and i.get("solicitado", False) and i["fim"] >= 0:
+                    
+                    i["fim"] -= 1 # tempo restante no mutex
                     if i["fim"] == 0:
+                        self.mutex_info.pop(0)
                         self.mutex_atual.libera_mutex()
                         self.mutex_atual = None
-                    
-                    break
-                    
-
+                    break               
 
     def verifica_quantum(self):
         if self.quantum_atual==self.quantum:
