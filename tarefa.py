@@ -1,6 +1,6 @@
 
 class tarefa: #Simula a TCB do sistema operacional
-    def __init__(self,id,cor,ingresso,prioridade,duracao,quantum,alfa,io):
+    def __init__(self,id,cor,ingresso,prioridade,duracao,quantum,alfa,io,mutex_info):
         self.id=id
         self.cor=cor
         self.ingresso=int(ingresso)
@@ -13,7 +13,7 @@ class tarefa: #Simula a TCB do sistema operacional
         self.prioridade_v=prioridade
         self.cpu=None
         self.alfa=int(alfa)
-        self.mutex_info=[]
+        self.mutex_info=mutex_info
         self.rodado=0
         self.mutex_atual=None
         self.io=io
@@ -32,19 +32,15 @@ class tarefa: #Simula a TCB do sistema operacional
         self.rodado += 1
         self.tempoexec += 1
         if self.mutex_atual is not None:
-            print(self.mutex_atual.id)
             for i in self.mutex_info:
-                if i["id"] == self.mutex_atual.id:
-
+                if i["id"] == self.mutex_atual.id and i.get("solicitado", False) and i["fim"] > 0:
                     i["fim"] -= 1  # tempo restante no mutex
-                    print(f"{i['fim']} para o fim do mutex atual({self.mutex_atual.id}) da tarefa {self.id}: {i['fim']}")
-                    print('AOOO POTENCIA')
                     if i["fim"] == 0:
-                        print(f"tarefa {self.id} liberou o mutex {self.mutex_atual.id}")
                         self.mutex_atual.libera_mutex()
                         self.mutex_atual = None
-
+                    
                     break
+                    
 
 
     def verifica_quantum(self):

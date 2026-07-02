@@ -86,6 +86,30 @@ class gerenciador_grafico:
             fill="white",
             tags=(tag,)
         )
+
+    def desenhar_tag_mutex(self, tempo, id, mutex_id):
+        tag = f"passo_{tempo}"
+        x1 = (tempo * self.larguraQuadrado) + self.xOrigem
+        y2 = (self.yOrigem - self.alturaQuadrado) - ((id - 1) * self.alturaQuadrado)
+        
+        # Coordenadas do pequeno badge amarelo para o texto "M<id>"
+        bx1 = x1 + 2
+        by1 = y2 + 2
+        bx2 = x1 + 16
+        by2 = y2 + 12
+        
+        # Desenha o fundinho amarelo do badge
+        self.canvas.create_rectangle(bx1, by1, bx2, by2, fill="yellow", outline="black", width=1, tags=(tag,))
+        
+        # Desenha o texto "M<id>" centralizado no badge
+        self.canvas.create_text(
+            (bx1 + bx2) / 2,
+            (by1 + by2) / 2,
+            text=f"M{mutex_id}",
+            font=("Arial", 6, "bold"),
+            fill="black",
+            tags=(tag,)
+        )
     
     def desenhar_retangulo_io(self,tempo,id,cor, cpu,prioridade):
         tag = f"passo_{tempo}"

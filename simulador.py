@@ -1,4 +1,5 @@
 from PIL import TiffImagePlugin
+from PIL import TiffImagePlugin
 import gerenciador_grafico as gg
 import tarefa as tf
 import copy
@@ -107,17 +108,21 @@ class simulador:
                 ingressos_do_passo.append(t.id)
 
         #Verifica se alguma tarefa pediu o mutex no tempo atual:
-
-        for t in self.prontas:#percorre tarefas
-            for i in t.mutex_info:#percorre informações dos mutexs das tarefas
-                if i["inicio"]==t.rodado and t.status!="suspensa_mutex":#verifica se tá no tempo de entrar um mutex
-                    for m in self.mutex:#procura o mutex com o id que stá no info da terefa no loop e no if
-                        if m.id==i["id"]:
+        for t in self.prontas:
+            for i in t.mutex_info:
+                if i["inicio"] == t.rodado and not i.get("solicitado", False) and t.status != "suspensa_mutex" and t.status != "IO":
+                    for m in self.mutex:
+                        if m.id == i["id"]:
                             print(f"Tarefa de ID {t.id} pediu a utilização do mutex {m.id}")
+                            i["solicitado"] = True
                             m.solicita_mutex(t)
+                            # Se a tarefa agora está suspensa_mutex, precisamos tirá-la da CPU que a estava executando
+                            if t.status == 'suspensa_mutex':
+                                for cpu in self.cpu:
+                                    if cpu.tarefa_rodando == t:
+                                        cpu.tarefa_rodando = None
+                                        cpu.quantum_atual = 0
                             break
-
-
         
         escalonador.ordenar(self.prontas)
 
@@ -176,6 +181,11 @@ class simulador:
                 if(x.status=='suspensa_mutex'):
                     self.Ggrafico.desenhar_retangulo_mutex(self.tempo,x.id,'black')
 
+            # Desenha a tag de posse do mutex para as tarefas que estão segurando um mutex no momento
+            for x in self.prontas:
+                if x.mutex_atual is not None:
+                    self.Ggrafico.desenhar_tag_mutex(self.tempo, x.id, x.mutex_atual.id)
+
         # Decrementa o tempo restante das tarefas em I/O
         for t in self.prontas:
             if t.status == "IO":
@@ -208,12 +218,20 @@ class simulador:
 
     #Cria uma pilha de estados para cada tempo de relógio do sistema
     def salvar_estado_atual(self):
+        # Deepcopy tudo em uma única chamada para preservar as referências entre objetos
+        estado_copiado = copy.deepcopy({
+            'fila_prontas': self.prontas,
+            'fila_original': self.fila,
+            'cpus': self.cpu,
+            'mutex': self.mutex
+        })
+        
         estado = {
             'tempo': self.tempo,
-            'fila_prontas': copy.deepcopy(self.prontas),
-            'fila_original': copy.deepcopy(self.fila),
-            'cpus': copy.deepcopy(self.cpu),
-            'mutex': copy.deepcopy(self.mutex)
+            'fila_prontas': estado_copiado['fila_prontas'],
+            'fila_original': estado_copiado['fila_original'],
+            'cpus': estado_copiado['cpus'],
+            'mutex': estado_copiado['mutex']
         }
         self.historico_estados.append(estado)
 
@@ -228,10 +246,10 @@ class simulador:
         estado_anterior = self.historico_estados[-1]
         #restaura os parametros anteriores da simulação
         self.tempo = estado_anterior['tempo']
-        self.prontas = copy.deepcopy(estado_anterior['fila_prontas'])
-        self.fila=copy.deepcopy(estado_anterior['fila_original'])
-        self.cpu = copy.deepcopy(estado_anterior['cpus'])
-        self.mutex=copy.deepcopy(estado_anterior['mutex'])
+        self.prontas = estado_anterior['fila_prontas']
+        self.fila = estado_anterior['fila_original']
+        self.cpu = estado_anterior['cpus']
+        self.mutex = estado_anterior['mutex']
         self.botao_passo.config(state="normal", text="Próximo Passo")
         self.botao_executar_tudo.config(state="normal", text="Executar Tudo")
         #Se não houver mais estados para retroceder, desabilita o botão de retroceder passo
@@ -293,37 +311,45 @@ class simulador:
                         ingresso = int(valores[2])
                         duracao = int(valores[3]) 
                         prioridade = int(valores[4])
-                        if  len(valores) > 5:
-                            io=[]
-                            for i in range(5,len(valores)):
-                                sub=valores[i].split(':')
-                                if sub[0]=='io':
-                                    sub=sub[1].split("-")
-                                    io.append([int(sub[0]),int(sub[1])])
+                        io=[]
+                        mutex_info=[]
+                        id_entrada=0
+                        id_saida=0
+                        if len(valores) > 5:
+                            for i in range(5, len(valores)):
+                                sub = valores[i].split(':')
+                                if not sub or not sub[0]:
+                                    continue
+                                if sub[0] == 'io':
+                                    sub = sub[1].split("-")
+                                    io.append([int(sub[0]), int(sub[1])])
                                 else:
-                                    continue #TODO FAZER O MUTEX
-                                    """for l in valores:
-                                        if str(l).lower().startswith("ml"):
-                                        id_entrada,instante_e=str(l).split(":")
-                                        id_entrada = int(id_entrada[2:])
-                                        nova_tarefa.mutex_info.append({
-                                            "id":id_entrada,
-                                            "inicio":int(instante_e),
-                                            "fim":0
-                                        })
-                                        if not any(m.id == id_entrada for m in self.mutex):
-                                            self.mutex.append(m.Mutex(id_entrada))
-                                        elif str(l).lower().startswith("mu"):
-                                            id_saida,instante_s=str(l).split(":")
-                                            id_saida = int(id_saida[2:])
-                                            for i in nova_tarefa.mutex_info:
-                                                if i["id"]==id_saida:
-                                                    i["fim"]=int(instante_s)
-                                                    break"""
-                        if len(io)>0:
-                            nova_tarefa = tf.tarefa(id_tarefa, cor, ingresso, prioridade, duracao,int(cabecalho[1]),alpha,io)
-                        else:
-                            nova_tarefa = tf.tarefa(id_tarefa, cor, ingresso, prioridade, duracao,int(cabecalho[1]),alpha,None)
+                                    if sub[0].startswith("ml"):
+                                        id_mutex, instante_e = sub
+                                        id_mutex = int(id_mutex[2:])
+                                        mutex_info.append(
+                                            {
+                                                "id": id_mutex,
+                                                "id_entrada": id_entrada,
+                                                "inicio": int(instante_e),
+                                                "fim": 0,
+                                                "solicitado": False
+                                            }
+                                        )
+                                        id_entrada+=1
+                                        if not any(mut.id == id_mutex for mut in self.mutex):
+                                            print(id_mutex)
+                                            self.mutex.append(m.Mutex(id_mutex))
+                                    elif sub[0].startswith("mu"):
+                                        id_mutex_saida, instante_s = sub
+                                        id_mutex_saida = int(id_mutex_saida[2:])
+                                        for entry in mutex_info:
+                                            if entry["id"] == id_mutex_saida and entry["id_entrada"]==id_saida:
+                                                entry["fim"] = int(instante_s) - entry["inicio"]
+                                                id_saida+=1
+                                                break
+
+                        nova_tarefa = tf.tarefa(id_tarefa, cor, ingresso, prioridade, duracao,int(cabecalho[1]),alpha,io,mutex_info)
                         self.tarefas.append(nova_tarefa)
         except FileNotFoundError:
             print("Arquivo não encontrado.")
